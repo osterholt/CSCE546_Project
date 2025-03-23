@@ -40,6 +40,18 @@ android {
 }
 
 dependencies {
+	//Add these dependencies for camera
+	implementation(libs.androidx.camera.view)
+	implementation(libs.androidx.camera.core)
+	implementation(libs.androidx.camera.camera.camera2)
+	implementation(libs.androidx.camera.lifecycle)
+
+	//Add these dependencies for ML libraries
+	implementation(libs.play.services.mlkit.text.recognition.common)
+	implementation(libs.play.services.mlkit.text.recognition)
+
+	//add this dependency to check/ask for permissions
+	implementation(libs.accompanist.permissions)
 
 	implementation(libs.androidx.core.ktx)
 	implementation(libs.androidx.lifecycle.runtime.ktx)

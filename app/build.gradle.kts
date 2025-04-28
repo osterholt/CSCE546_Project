@@ -1,5 +1,7 @@
+import com.android.tools.r8.internal.ml
+import org.gradle.kotlin.dsl.implementation
+
 plugins {
-	id("com.google.gms.google-services")
 	alias(libs.plugins.android.application)
 	alias(libs.plugins.kotlin.android)
 	alias(libs.plugins.kotlin.compose)
@@ -42,34 +44,27 @@ android {
 }
 
 dependencies {
-	//Import the Firebase BoM
-	implementation(platform(libs.firebase.bom))
-	implementation(libs.firebase.ml.vision)
-	// If you want to detect face contours (landmark detection and classification
-	// don't require this additional model):
-	implementation("com.google.firebase:firebase-ml-vision-face-model:20.0.2")
+	implementation (libs.firebase.ml.vision.v2403)
+//	implementation(platform("com.google.firebase:firebase-bom:26.8.0"))
+//
+//	// Firebase ML Vision
+//	implementation("com.google.firebase:firebase-ml-vision:24.1.0")
+//	implementation("com.google.firebase:firebase-ml-vision-face-model:20.0.2")
+//
+//	// Explicitly declare Google Vision libraries to avoid duplicates
+//	implementation("com.google.android.gms:play-services-vision:20.1.3")
+//	implementation("com.google.android.gms:play-services-vision-common:19.1.3")
 
-	//Add these dependencies for camera
+	// CameraX, Room, Compose, etc...
 	implementation(libs.androidx.camera.view)
 	implementation(libs.androidx.camera.core)
 	implementation(libs.androidx.camera.camera.camera2)
 	implementation(libs.androidx.camera.lifecycle)
-
-	//Add these dependencies for ML libraries
-	implementation(libs.play.services.mlkit.text.recognition.common)
-	implementation(libs.play.services.mlkit.text.recognition)
-
-	//add this dependency to check/ask for permissions
 	implementation(libs.accompanist.permissions)
-
-	// Add this dependency for viewmodel stuff
 	implementation(libs.androidx.lifecycle.viewmodel.compose)
-
-	// Add these dependencies for Room functionality
 	implementation(libs.androidx.room.runtime)
 	implementation(libs.androidx.room.ktx)
 	ksp(libs.androidx.room.compiler)
-
 	implementation(libs.androidx.core.ktx)
 	implementation(libs.androidx.lifecycle.runtime.ktx)
 	implementation(libs.androidx.activity.compose)
@@ -78,7 +73,9 @@ dependencies {
 	implementation(libs.androidx.ui.graphics)
 	implementation(libs.androidx.ui.tooling.preview)
 	implementation(libs.androidx.material3)
-    testImplementation(libs.junit)
+
+	// Tests
+	testImplementation(libs.junit)
 	androidTestImplementation(libs.androidx.junit)
 	androidTestImplementation(libs.androidx.espresso.core)
 	androidTestImplementation(platform(libs.androidx.compose.bom))

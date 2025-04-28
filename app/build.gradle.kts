@@ -1,4 +1,5 @@
 plugins {
+	id("com.google.gms.google-services")
 	alias(libs.plugins.android.application)
 	alias(libs.plugins.kotlin.android)
 	alias(libs.plugins.kotlin.compose)
@@ -40,6 +41,13 @@ android {
 }
 
 dependencies {
+	//Import the Firebase BoM
+	implementation(platform(libs.firebase.bom))
+	implementation(libs.firebase.ml.vision)
+	// If you want to detect face contours (landmark detection and classification
+	// don't require this additional model):
+	implementation("com.google.firebase:firebase-ml-vision-face-model:20.0.2")
+
 	//Add these dependencies for camera
 	implementation(libs.androidx.camera.view)
 	implementation(libs.androidx.camera.core)

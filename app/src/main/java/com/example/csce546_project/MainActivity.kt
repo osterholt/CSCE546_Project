@@ -20,11 +20,7 @@ class MainActivity : ComponentActivity() {
 		super.onCreate(savedInstanceState)
 		enableEdgeToEdge()
 		setContent {
-			MaterialTheme {
-				Surface {
-					ScreenView()
-				}
-			}
+			MainScreen()
 		}
 	}
 }

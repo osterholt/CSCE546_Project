@@ -7,5 +7,5 @@ import androidx.room.PrimaryKey
 data class PictureEntry (
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val name: String,
-    val picture: String  // TODO make picture
+    val filepath: String  // TODO see if you can store actual image, or research filepath use
 )

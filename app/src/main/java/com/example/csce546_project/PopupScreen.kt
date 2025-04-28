@@ -12,6 +12,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,6 +20,8 @@ import androidx.compose.ui.window.Popup
 
 @Composable
 fun AddPopup(viewModel: PopupViewModel, onClose: () -> Unit) {
+    val currentPicture = viewModel.currentPicture.collectAsState()
+
     Column(
         modifier = Modifier
             .fillMaxWidth(0.8f)
@@ -27,7 +30,7 @@ fun AddPopup(viewModel: PopupViewModel, onClose: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (viewModel.currentPicture == null) {
+        if (currentPicture.value == null) {
             Button(
                 onClick = { viewModel.takePicture() }
             ) {
@@ -83,7 +86,7 @@ fun AddPopup(viewModel: PopupViewModel, onClose: () -> Unit) {
 
 @Composable
 fun EditPopup(viewModel: PopupViewModel, onClose: () -> Unit) {
-    val currentPicture = viewModel.currentPicture
+    val currentPicture = viewModel.currentPicture.collectAsState()
 
     Column(
         modifier = Modifier
@@ -94,7 +97,7 @@ fun EditPopup(viewModel: PopupViewModel, onClose: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         OutlinedTextField (
-            value = currentPicture?.name ?: "NULL",
+            value = currentPicture.value?.name ?: "NULL",
             onValueChange = {/* TODO */},
             label = { Text(text = "Name") },
             modifier = Modifier

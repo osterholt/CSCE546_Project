@@ -16,6 +16,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,28 +55,31 @@ fun MainScreen() {
 
 	// Information used for popups and adding/editing pictures
 	val viewModel: PopupViewModel = viewModel()
-	var showAddPopup by remember { mutableStateOf(false) }
-	var showEditPopup by remember { mutableStateOf(false) }
+	val currentPicture by viewModel.currentPicture.collectAsState()
+	val showAdd by viewModel.showAddPopup.collectAsState()
+	val showEdit by viewModel.showEditPopup.collectAsState()
+
+	val TEST_PICTURE = PictureEntry(0, "Example", "exampleFilePath")  // TODO
 
 	// START MAIN SCREEN
 	Box (
 		modifier = Modifier.fillMaxHeight()
 	) {
 		// Popups, shown conditionally
-		if (showAddPopup) {
+		if (showAdd) {
 			Popup (
-				onDismissRequest = { showAddPopup = false },
+				onDismissRequest = { viewModel.closePopup() },
 				alignment = Alignment.Center
 			) {
-				AddPopup(viewModel, { showAddPopup = false })
+				AddPopup(viewModel, { viewModel.closePopup() })
 			}
 		}
-		else if (showEditPopup) {
+		else if (showEdit) {
 			Popup (
-				onDismissRequest = { showEditPopup = false },
+				onDismissRequest = { viewModel.closePopup() },
 				alignment = Alignment.Center
 			) {
-				EditPopup(viewModel, { showEditPopup = false })
+				EditPopup(viewModel, { viewModel.closePopup() })
 			}
 		}
 
@@ -124,18 +128,13 @@ fun MainScreen() {
 				)
 
 				Button(
-					onClick = {
-						showAddPopup = true
-					},
+					onClick = { viewModel.openAddPopup() },
 				) {
 					Text("Test add popup")
 				}
 
 				Button(
-					onClick = {
-						viewModel.currentPicture = PictureEntry(0, "Example", "examplePicture")  // TODO pass in clicked picture
-						showEditPopup = true
-					},
+					onClick = { viewModel.openEditPopup(TEST_PICTURE) },
 				) {
 					Text("Test view popup")
 				}

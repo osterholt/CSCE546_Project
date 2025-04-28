@@ -5,13 +5,13 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 
 class PopupViewModel(application: Application) : AndroidViewModel(application) {
-    private val pictureRepository: String = ""
+    private val pictureRepository: String = ""  // TODO create repo
 
-    val pictures: LiveData<List<PictureEntry>>?  // TODO complete PictureEntry
-    var currentPicture: PictureEntry?
+    val pictures: LiveData<List<PictureEntry>>?
+    var currentPicture: PictureEntry?  // TODO forgot how to do dataflow thing so changes update on screen
 
     init {
-        pictures = null
+        pictures = null  // TODO init properly
         currentPicture = null
     }
 
@@ -19,7 +19,7 @@ class PopupViewModel(application: Application) : AndroidViewModel(application) {
         // TODO implement camera
     }
 
-    fun getPicture() {
+    fun openPicture() {
         // TODO implement get image from gallery
     }
 
@@ -27,7 +27,7 @@ class PopupViewModel(application: Application) : AndroidViewModel(application) {
         this.currentPicture = null
     }
 
-    fun savePicture(picture: String) {
+    fun saveCurrentPicture() {
         if (currentPicture == null)
             return
 
@@ -36,7 +36,7 @@ class PopupViewModel(application: Application) : AndroidViewModel(application) {
         this.currentPicture = null
     }
 
-    fun deletePicture(picture: String) {
+    fun deleteCurrentPicture() {
         if (currentPicture == null)
             return
 

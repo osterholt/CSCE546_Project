@@ -1,6 +1,8 @@
 package com.example.csce546_project
 
+import android.graphics.Rect
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -18,20 +20,25 @@ private fun bindPreview(
 	cameraProvider: ProcessCameraProvider,
 	previewView: PreviewView,
 	imageCapture: ImageCapture,
-	lifecycleOwner: LifecycleOwner
+	lifecycleOwner: LifecycleOwner,
+	imageAnalyzer: ImageAnalysis
 ) {
 	val preview = Preview.Builder().build().also {
-		it.surfaceProvider = previewView.surfaceProvider
+		it.setSurfaceProvider(previewView.surfaceProvider)
 	}
+
 	val cameraSelector = CameraSelector.Builder()
 		.requireLensFacing(CameraSelector.LENS_FACING_BACK)
 		.build()
+
 	cameraProvider.unbindAll()
+
 	cameraProvider.bindToLifecycle(
 		lifecycleOwner,
 		cameraSelector,
 		preview,
-		imageCapture
+		imageCapture,
+		imageAnalyzer
 	)
 }
 
@@ -39,10 +46,22 @@ private fun bindPreview(
 fun CameraPreview(
 	previewView: PreviewView,
 	imageCapture: ImageCapture,
-	lifecycleOwner: LifecycleOwner
+	lifecycleOwner: LifecycleOwner,
+	onFacesDetected: (List<Rect>) -> Unit
 ) {
 	val context = LocalContext.current
 	val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+
+	val imageAnalyzer = remember {
+		ImageAnalysis.Builder()
+			.setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+			.build().also {
+				it.setAnalyzer(
+					ContextCompat.getMainExecutor(context),
+					FaceAnalyzer(onFacesDetected) // Actual analyzer
+				)
+			}
+	}
 
 	AndroidView(
 		factory = { previewView },
@@ -54,9 +73,10 @@ fun CameraPreview(
 					cameraProvider = cameraProvider,
 					previewView = view,
 					imageCapture = imageCapture,
-					lifecycleOwner = lifecycleOwner
+					lifecycleOwner = lifecycleOwner,
+					imageAnalyzer = imageAnalyzer // pass built analyzer
 				)
-			}, ContextCompat.getMainExecutor(context) )
+			}, ContextCompat.getMainExecutor(context))
 		}
 	)
 }

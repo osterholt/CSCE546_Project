@@ -16,11 +16,10 @@ data class PictureEntry (
 
 /**
  * Class used to store active image data. Loaded from and saved to PictureEntry on start/save.
- * TODO learn how to map between the two for database loading/saving -- possibly make normal class
  */
 data class PictureModel(
-    val id: Int = 0,
+    val id: Int,
     val name: String?,
     val filepath: Uri?,
-    // TODO include bitmap
+    // TODO include bitmap and face
 )

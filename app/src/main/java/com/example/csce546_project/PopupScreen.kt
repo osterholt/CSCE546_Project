@@ -65,7 +65,7 @@ fun AddPopup(viewModel: PopupViewModel, onClose: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         if (currentImageURI.value == null) {
-            TakePhotoButton(/* TODO viewModel */)
+            TakePhotoButton(viewModel)
 
             Text(text = "or")
 
@@ -82,7 +82,7 @@ fun AddPopup(viewModel: PopupViewModel, onClose: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(0.4f),
-                model = viewModel.currentImageURI,
+                model = currentImageURI.value,
                 contentDescription = ""
             )
 
@@ -161,22 +161,20 @@ fun EditPopup(viewModel: PopupViewModel, onClose: () -> Unit) {
 }
 
 @Composable
-fun TakePhotoButton(/* viewModel: PopupViewModel */) {
+fun TakePhotoButton(viewModel: PopupViewModel) {
 
     val context = LocalContext.current
-    val file = context.createImageFile()
+    val file = viewModel.createImageFileInCache(context)
     val uri = FileProvider.getUriForFile(
         Objects.requireNonNull(context),
         context.packageName + ".provider",
         file
     )
 
-    var capturedImageUri by remember { mutableStateOf<Uri>(Uri.EMPTY) }
-
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture(),
         onResult = {
-            capturedImageUri = uri
+            viewModel.setCurrentImageURI(uri)
         }
     )
 
@@ -193,26 +191,6 @@ fun TakePhotoButton(/* viewModel: PopupViewModel */) {
             )
         }
     }
-
-    if (capturedImageUri.path?.isNotEmpty() == true) {
-        Image(
-            modifier = Modifier.padding(16.dp, 8.dp),
-            painter = rememberImagePainter(capturedImageUri),
-            contentDescription = null
-        )
-    }
-}
-
-fun Context.createImageFile(): File {
-    val timeStamp = SimpleDateFormat("yyyy_MM_dd_HH:mm:ss").format(Date())
-    val imageFileName = "JPEG_" + timeStamp + "_"
-    val image = File.createTempFile(
-        imageFileName,
-        ".jpg",
-        externalCacheDir
-    )
-
-    return image
 }
 
 @Composable

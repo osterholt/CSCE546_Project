@@ -22,4 +22,5 @@ data class PictureModel(
     val id: Int = 0,
     val name: String?,
     val filepath: Uri?,
+    // TODO include bitmap
 )

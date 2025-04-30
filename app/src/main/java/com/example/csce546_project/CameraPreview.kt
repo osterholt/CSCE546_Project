@@ -47,7 +47,7 @@ fun CameraPreview(
 	previewView: PreviewView,
 	imageCapture: ImageCapture,
 	lifecycleOwner: LifecycleOwner,
-	onFacesDetected: (List<Rect>) -> Unit
+	onFacesDetected: (List<Rect>, Int, Int) -> Unit
 ) {
 	val context = LocalContext.current
 	val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
@@ -58,7 +58,9 @@ fun CameraPreview(
 			.build().also {
 				it.setAnalyzer(
 					ContextCompat.getMainExecutor(context),
-					FaceAnalyzer(onFacesDetected) // Actual analyzer
+					FaceAnalyzer { faces, width, height ->
+						onFacesDetected(faces, width, height)
+					}
 				)
 			}
 	}

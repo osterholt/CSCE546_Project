@@ -1,11 +1,13 @@
 package com.example.csce546_project
 
+import android.graphics.Rect
 import androidx.camera.core.ImageCapture
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -13,7 +15,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,8 +56,9 @@ fun MainScreen() {
 	val showEdit by viewModel.showEditPopup.collectAsState()
 
 	// Cam's AI Boxes
-	val cameraViewModel: CameraViewModel = viewModel()
-	val faces by cameraViewModel.faces.collectAsState()
+	var faces by remember { mutableStateOf(emptyList<Rect>()) }
+	var imageWidth by remember { mutableStateOf(1) }
+	var imageHeight by remember { mutableStateOf(1) }
 
 	val TEST_PICTURE = PictureEntry(0, "Example", "exampleFilePath")  // TODO
 
@@ -96,11 +101,20 @@ fun MainScreen() {
 							previewView = previewView,
 							imageCapture = imageCapture,
 							lifecycleOwner = lifecycleOwner,
-							onFacesDetected = cameraViewModel::updateFaces
+							onFacesDetected = { detectedFaces, width, height ->
+								faces = detectedFaces
+								imageWidth = width
+								imageHeight = height
+							}
 						)
 					}
 
-					FaceBoxOverlay(faces, modifier = Modifier.matchParentSize())
+					FaceBoxOverlay(
+						faces = faces,
+						imageWidth = imageWidth,
+						imageHeight = imageHeight,
+						modifier = Modifier.fillMaxSize()
+					)
 
 					// Debug to show faces
 					Text(

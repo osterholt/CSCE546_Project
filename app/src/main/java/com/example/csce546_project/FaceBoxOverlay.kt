@@ -10,16 +10,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 
 @Composable
-fun FaceBoxOverlay(faces: List<Rect>, modifier: Modifier = Modifier) {
+fun FaceBoxOverlay(faces: List<Rect>,
+				   imageWidth: Int,
+				   imageHeight: Int,
+				   modifier: Modifier = Modifier) {
 	Canvas(modifier = modifier) {
+		val scaleX = size.width / imageWidth
+		val scaleY = size.height / imageHeight
+
 		for (box in faces) {
 			drawRect(
 				color = Color.Green,
-				topLeft = Offset(box.left.toFloat(), box.top.toFloat()),
-				size = Size(
-					width = (box.width()).toFloat(),
-					height = (box.height()).toFloat()
-				),
+				topLeft = Offset(box.left * scaleX, box.top * scaleY),
+				size = Size(box.width() * scaleX, box.height() * scaleY),
 				style = Stroke(width = 4f)
 			)
 		}

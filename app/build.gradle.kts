@@ -1,6 +1,3 @@
-import com.android.tools.r8.internal.ml
-import org.gradle.kotlin.dsl.implementation
-
 plugins {
 	alias(libs.plugins.android.application)
 	alias(libs.plugins.kotlin.android)
@@ -44,16 +41,14 @@ android {
 }
 
 dependencies {
-	implementation (libs.firebase.ml.vision.v2403)
-//	implementation(platform("com.google.firebase:firebase-bom:26.8.0"))
-//
-//	// Firebase ML Vision
-//	implementation("com.google.firebase:firebase-ml-vision:24.1.0")
-//	implementation("com.google.firebase:firebase-ml-vision-face-model:20.0.2")
-//
-//	// Explicitly declare Google Vision libraries to avoid duplicates
-//	implementation("com.google.android.gms:play-services-vision:20.1.3")
-//	implementation("com.google.android.gms:play-services-vision-common:19.1.3")
+	// AppCompat (usually already present)
+	implementation(libs.androidx.appcompat) // or latest
+
+	// ML Kit Vision Common (InputImage)
+	implementation(libs.vision.common)
+
+	// ML Kit Face Detection
+	implementation (libs.face.detection.v1617)
 
 	// CameraX, Room, Compose, etc...
 	implementation(libs.androidx.camera.view)

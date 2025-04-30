@@ -1,34 +1,47 @@
 package com.example.csce546_project
 
-import android.graphics.Picture
+import android.graphics.Bitmap
+import android.graphics.Matrix
+import android.graphics.Rect
 import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageProxy
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
-import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -51,6 +64,15 @@ fun MainScreen() {
 	val currentPicture by viewModel.currentPicture.collectAsState()
 	val showAdd by viewModel.showAddPopup.collectAsState()
 	val showEdit by viewModel.showEditPopup.collectAsState()
+
+	// Cam's AI Boxes
+	var faces by remember { mutableStateOf(emptyList<Rect>()) }
+	var imageCaptured by remember { mutableStateOf(false) }
+	var imageWidth by remember { mutableStateOf(1) }
+	var imageHeight by remember { mutableStateOf(1) }
+	var detectedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+	val TEST_PICTURE = PictureEntry(0, "Example", "exampleFilePath")  // TODO
 
 	// START MAIN SCREEN
 	Box (
@@ -85,14 +107,85 @@ fun MainScreen() {
 					.fillMaxHeight(0.5f)  // TODO figure out how to clip camera preview
 			) {
 				if (cameraPermissionState.status.isGranted) {
-					// Box Representing Image Preview
-					Box(modifier = Modifier) {
-						CameraPreview(
-							previewView = previewView,
-							imageCapture = imageCapture,
-							lifecycleOwner = lifecycleOwner
+					if(!imageCaptured) {
+						// Box Representing Image Preview
+						Box(modifier = Modifier) {
+							// TODO: Switch to selfie camera or have toggle.
+							CameraPreview(
+								previewView = previewView,
+								imageCapture = imageCapture,
+								lifecycleOwner = lifecycleOwner,
+								onFacesDetected = { detectedFaces, width, height ->
+									if(detectedFaces.isNotEmpty() && !imageCaptured) {
+										imageCapture.takePicture(
+											ContextCompat.getMainExecutor(context),
+											object : ImageCapture.OnImageCapturedCallback() {
+												override fun onCaptureSuccess(image: ImageProxy) {
+													val bitmap = image.toBitmap()
+													val rotationDegrees = image.imageInfo.rotationDegrees
+													val rotatedBitmap = rotateBitmap(bitmap, rotationDegrees.toFloat())
+													detectedBitmap = rotatedBitmap
+//													imageWidth = image.width
+//													imageHeight = image.height
+													image.close()
+													imageCaptured = true
+												}
+											}
+										)
+										faces = detectedFaces
+										imageWidth = width
+										imageHeight = height
+									}
+								}
+							)
+						}
+					} else {
+						detectedBitmap?.let { bitmap ->
+							val aspectRatio = bitmap.width.toFloat() / bitmap.height
+
+							Image(
+								bitmap = bitmap.asImageBitmap(),
+								contentDescription = "Detected Face",
+								contentScale = ContentScale.Fit, // maintains aspect ratio
+								modifier = Modifier
+									.fillMaxWidth()
+									.aspectRatio(aspectRatio)
+							)
+						}
+
+						// Display face details and such
+						FaceBoxOverlay(
+							faces = faces,
+							imageWidth = imageWidth,
+							imageHeight = imageHeight,
+							modifier = Modifier.fillMaxSize()
 						)
+
+						// Debug to show faces
+						Text(
+							text = "Number of faces: ${faces.size}",
+							modifier = Modifier
+								.align(Alignment.BottomCenter)
+								.background(Color.Black.copy(alpha = 0.5f)),
+							color = Color.White
+						)
+
+						// Reset detection
+						Button(
+							onClick = {
+								imageCaptured = false
+								detectedBitmap = null
+								faces = emptyList()
+							},
+							modifier = Modifier
+								.align(Alignment.BottomEnd)
+								.padding(16.dp)
+						) {
+							Text("Reset")
+						}
 					}
+
+
 					Box(modifier = Modifier) {
 						Text(
 							text = defaultName,
@@ -132,4 +225,12 @@ fun MainScreen() {
 			}
 		}
 	}
+}
+
+fun rotateBitmap(source: Bitmap, angle: Float): Bitmap {
+	val matrix = Matrix()
+	matrix.postRotate(angle)
+	return Bitmap.createBitmap(
+		source, 0, 0, source.width, source.height, matrix, true
+	)
 }

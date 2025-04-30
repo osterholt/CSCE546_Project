@@ -27,7 +27,7 @@ class FaceAnalyzer(private val onFacesDetected: (List<Rect>, Int, Int) -> Unit) 
 
 	@OptIn(ExperimentalGetImage::class)
 	override fun analyze(imageProxy: ImageProxy) {
-		if (frameCounter % 5 == 0) {  // Skip frames to reduce processing load
+		if (frameCounter % 10 == 0) {  // Skip frames to reduce processing load
 			val mediaImage = imageProxy.image
 			if (mediaImage != null) {
 				val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)

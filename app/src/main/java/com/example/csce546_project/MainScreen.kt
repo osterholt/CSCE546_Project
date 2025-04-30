@@ -10,6 +10,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -108,6 +110,7 @@ fun MainScreen() {
 					if(!imageCaptured) {
 						// Box Representing Image Preview
 						Box(modifier = Modifier) {
+							// TODO: Switch to selfie camera or have toggle.
 							CameraPreview(
 								previewView = previewView,
 								imageCapture = imageCapture,
@@ -138,10 +141,15 @@ fun MainScreen() {
 						}
 					} else {
 						detectedBitmap?.let { bitmap ->
+							val aspectRatio = bitmap.width.toFloat() / bitmap.height
+
 							Image(
 								bitmap = bitmap.asImageBitmap(),
 								contentDescription = "Detected Face",
-								modifier = Modifier.fillMaxSize()
+								contentScale = ContentScale.Fit, // maintains aspect ratio
+								modifier = Modifier
+									.fillMaxWidth()
+									.aspectRatio(aspectRatio)
 							)
 						}
 

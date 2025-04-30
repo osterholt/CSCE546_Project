@@ -36,8 +36,8 @@ class FaceAnalyzer(private val onFacesDetected: (List<Rect>, Int, Int) -> Unit) 
 				detector.process(image)
 					.addOnSuccessListener(executor) { faces ->
 						val faceRects = faces.map { it.boundingBox }
-						val imageWidth = imageProxy.width
-						val imageHeight = imageProxy.height
+						val imageWidth = image.width
+						val imageHeight = image.height
 						onFacesDetected(faceRects, imageWidth, imageHeight)
 					}
 					.addOnFailureListener(executor) { e ->

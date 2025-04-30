@@ -4,6 +4,10 @@ agp = "8.7.3"
 androidxCameraCamera2 = "1.4.1"
 faceDetection = "17.1.0"
 faceDetectionVersion = "16.1.7"
+coilCompose = "2.2.0"
+firebaseBom = "33.11.0"
+firebaseMlVision = "24.1.0"
+firebaseMlVisionVersion = "24.0.3"
 kotlin = "2.0.0"
 coreKtx = "1.15.0"
 junit = "4.13.2"
@@ -30,6 +34,10 @@ androidx-camera-view = { group = "androidx.camera", name = "camera-view", versio
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "cameraLifecycle" }
 face-detection = { module = "com.google.mlkit:face-detection", version.ref = "faceDetection" }
 face-detection-v1617 = { module = "com.google.mlkit:face-detection", version.ref = "faceDetectionVersion" }
+coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-ml-vision = { module = "com.google.firebase:firebase-ml-vision", version.ref = "firebaseMlVision" }
+firebase-ml-vision-v2403 = { module = "com.google.firebase:firebase-ml-vision", version.ref = "firebaseMlVisionVersion" }
 play-services-mlkit-text-recognition-common = { group = "com.google.android.gms", name = "play-services-mlkit-text-recognition-common", version.ref = "playServicesMlkitTextRecognitionCommon" }
 play-services-mlkit-text-recognition = { group = "com.google.android.gms", name = "play-services-mlkit-text-recognition", version.ref = "playServicesMlkitTextRecognition" }
 

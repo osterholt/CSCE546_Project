@@ -54,7 +54,6 @@ import java.util.Objects
 @Composable
 fun AddPopup(viewModel: PopupViewModel, onClose: () -> Unit) {
     val currentPicture = viewModel.currentPicture.collectAsState()
-    val currentImageURI = viewModel.currentImageURI.collectAsState()
 
     Column(
         modifier = Modifier
@@ -64,7 +63,7 @@ fun AddPopup(viewModel: PopupViewModel, onClose: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (currentImageURI.value == null) {
+        if (currentPicture.value?.filepath == null) {
             TakePhotoButton(viewModel)
 
             Text(text = "or")
@@ -82,7 +81,7 @@ fun AddPopup(viewModel: PopupViewModel, onClose: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(0.4f),
-                model = currentImageURI.value,
+                model = currentPicture.value!!.filepath,
                 contentDescription = ""
             )
 
@@ -150,7 +149,7 @@ fun EditPopup(viewModel: PopupViewModel, onClose: () -> Unit) {
             }
             Button(
                 onClick = {
-                    viewModel.saveCurrentPicture()
+                    viewModel.updateCurrentPicture()
                     onClose()
                 }
             ) {
@@ -174,7 +173,7 @@ fun TakePhotoButton(viewModel: PopupViewModel) {
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture(),
         onResult = {
-            viewModel.setCurrentImageURI(uri)
+            viewModel.setPictureFilePath(uri)
         }
     )
 
@@ -199,7 +198,7 @@ fun PickPhotoButton(viewModel: PopupViewModel) {
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = {
-            viewModel.setCurrentImageURI(it)
+            viewModel.setPictureFilePath(it)
         }
     )
 

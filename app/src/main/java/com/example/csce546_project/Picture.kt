@@ -11,15 +11,15 @@ import androidx.room.PrimaryKey
 data class PictureEntry (
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val name: String,
-    val filepath: String  // TODO convert Uri to String before storing
+    val filepath: String
 )
 
 /**
  * Class used to store active image data. Loaded from and saved to PictureEntry on start/save.
  */
-data class PictureModel(
-    val id: Int,
-    val name: String?,
-    val filepath: Uri?,
-    // TODO include bitmap and face
+class PictureModel(
+    val id: Int?,
+    var name: String?,
+    var filepath: Uri?
+    // TODO additional data
 )

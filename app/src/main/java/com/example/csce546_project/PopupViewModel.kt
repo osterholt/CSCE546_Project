@@ -7,27 +7,21 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 
 class PopupViewModel(application: Application) : AndroidViewModel(application) {
-    private val pictureRepository: String = ""  // TODO create repo
-
-    val pictures: LiveData<List<PictureModel>>?
+    private val pictureRepository: PictureRepository
+    val pictures: LiveData<List<PictureModel>>
 
     private val _currentPicture = MutableStateFlow<PictureModel?>(null)
     val currentPicture: StateFlow<PictureModel?> = _currentPicture
-
-    // TODO clean this up and make it use the PictureModel instead
-    private val _currentImageURI = MutableStateFlow<Uri?>(null)
-    val currentImageURI: StateFlow<Uri?> = _currentImageURI
-    fun setCurrentImageURI(uri: Uri?) {
-        this._currentImageURI.value = uri
-        Log.d("TAG","CURRENT IMAGE URI = " + this.currentImageURI.value)
-    }
 
     private val _showAddPopup = MutableStateFlow(false)
     val showAddPopup: StateFlow<Boolean> = _showAddPopup
@@ -35,27 +29,28 @@ class PopupViewModel(application: Application) : AndroidViewModel(application) {
     private val _showEditPopup = MutableStateFlow(false)
     val showEditPopup: StateFlow<Boolean> = _showEditPopup
 
+
     init {
-        this.pictures = null  // TODO init properly
-        this._currentPicture.value = null
-    }
-
-    fun setPicture(picture: PictureModel) {
-        this._currentPicture.value = picture
-    }
-
-    fun setPictureFilePath(filepath: Uri) {
-
+        val pictureDAO = PictureDatabase.getDatabase(application).pictureDAO()
+        this.pictureRepository = PictureRepository(pictureDAO)
+        this.pictures = pictureRepository.pictures.asLiveData()
     }
 
     fun setPictureName(name: String) {
+        _currentPicture.value = _currentPicture.value?.also { it.name = name }
+    }
 
+    fun setPictureFilePath(filepath: Uri?) {
+        if (this._currentPicture.value == null)
+            this._currentPicture.value = PictureModel(null, null, filepath)
+        else
+            _currentPicture.value = _currentPicture.value?.also { it.filepath = filepath }
     }
 
     fun clearPicture() {
         this._currentPicture.value = null
-        this._currentImageURI.value = null  // TODO remove later
     }
+
 
     // Used for taking images -- creates a temporary file for the taken picture to reside
     fun createImageFileInCache(context: Context): File {
@@ -69,6 +64,28 @@ class PopupViewModel(application: Application) : AndroidViewModel(application) {
 
         return image
     }
+
+    fun saveCurrentPicture() = viewModelScope.launch {
+        _currentPicture.value.also {
+            if (it != null)
+                pictureRepository.addPicture(it)
+        }
+    }
+
+    fun updateCurrentPicture() = viewModelScope.launch {
+        _currentPicture.value.also {
+            if (it != null)
+                pictureRepository.updatePicture(it)
+        }
+    }
+
+    fun deleteCurrentPicture() = viewModelScope.launch {
+        _currentPicture.value.also {
+            if (it != null)
+                pictureRepository.deletePicture(it)
+        }
+    }
+
 
     fun openAddPopup() {
         this._showEditPopup.value = false
@@ -84,24 +101,6 @@ class PopupViewModel(application: Application) : AndroidViewModel(application) {
     fun closePopup() {
         this._showAddPopup.value = false
         this._showEditPopup.value = false
-        this._currentPicture.value = null
-    }
-
-    fun saveCurrentPicture() {
-        if (this._currentPicture.value == null)
-            return
-
-        // TODO save picture (or filepath) in room database
-
-        this._currentPicture.value = null
-    }
-
-    fun deleteCurrentPicture() {
-        if (this._currentPicture.value == null)
-            return
-
-        // TODO delete picture (or filepath) from room database
-
         this._currentPicture.value = null
     }
 }

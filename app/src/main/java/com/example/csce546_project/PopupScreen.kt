@@ -1,5 +1,6 @@
 package com.example.csce546_project
 
+import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -34,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -41,7 +43,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
+import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
+import coil.compose.rememberImagePainter
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Objects
 
 @Composable
 fun AddPopup(viewModel: PopupViewModel, onClose: () -> Unit) {
@@ -57,15 +65,11 @@ fun AddPopup(viewModel: PopupViewModel, onClose: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         if (currentImageURI.value == null) {
-            Button(
-                onClick = { /* TODO */ }
-            ) {
-                Text(text = "Take a Picture")
-            }
+            TakePhotoButton(/* TODO viewModel */)
 
             Text(text = "or")
 
-            PhotoPicker(viewModel)
+            PickPhotoButton(viewModel)
         } else {
             OutlinedTextField(
                 value = "",
@@ -157,12 +161,62 @@ fun EditPopup(viewModel: PopupViewModel, onClose: () -> Unit) {
 }
 
 @Composable
-fun CameraSelect(viewModel: PopupViewModel) {
-    // TODO same structure as below but with detached camera
+fun TakePhotoButton(/* viewModel: PopupViewModel */) {
+
+    val context = LocalContext.current
+    val file = context.createImageFile()
+    val uri = FileProvider.getUriForFile(
+        Objects.requireNonNull(context),
+        context.packageName + ".provider",
+        file
+    )
+
+    var capturedImageUri by remember { mutableStateOf<Uri>(Uri.EMPTY) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture(),
+        onResult = {
+            capturedImageUri = uri
+        }
+    )
+
+    Button(
+        onClick = { cameraLauncher.launch(uri) }
+    ) {
+        Row{
+            Icon(
+                painter = painterResource(id = android.R.drawable.ic_input_add),
+                contentDescription = "Add Image"
+            )
+            Text(
+                text = "Take Photo"
+            )
+        }
+    }
+
+    if (capturedImageUri.path?.isNotEmpty() == true) {
+        Image(
+            modifier = Modifier.padding(16.dp, 8.dp),
+            painter = rememberImagePainter(capturedImageUri),
+            contentDescription = null
+        )
+    }
+}
+
+fun Context.createImageFile(): File {
+    val timeStamp = SimpleDateFormat("yyyy_MM_dd_HH:mm:ss").format(Date())
+    val imageFileName = "JPEG_" + timeStamp + "_"
+    val image = File.createTempFile(
+        imageFileName,
+        ".jpg",
+        externalCacheDir
+    )
+
+    return image
 }
 
 @Composable
-fun PhotoPicker(viewModel: PopupViewModel) {
+fun PickPhotoButton(viewModel: PopupViewModel) {
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),

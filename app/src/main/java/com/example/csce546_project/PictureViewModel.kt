@@ -16,8 +16,9 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
-class PopupViewModel(application: Application) : AndroidViewModel(application) {
+class PictureViewModel(application: Application) : AndroidViewModel(application) {
     private val pictureRepository: PictureRepository
     val pictures: LiveData<List<PictureModel>>
 
@@ -53,10 +54,10 @@ class PopupViewModel(application: Application) : AndroidViewModel(application) {
     }
 
 
-    // Used for taking images -- creates a temporary file for the taken picture to reside
+    // Used for caching images taken with the camera -- NOT the permanent URI
     fun createImageFileInCache(context: Context): File {
-        val timestamp = SimpleDateFormat("yyyy_MM_dd_HH:mm:ss").format(Date())
-        val imageFileName = "JPEG_" + timestamp + "_"
+        val timestamp = SimpleDateFormat("yyyy_MM_dd_HH:mm:ss", Locale.US).format(Date())
+        val imageFileName = "temp_${timestamp}"
         val image = File.createTempFile(
             imageFileName,
             ".jpg",

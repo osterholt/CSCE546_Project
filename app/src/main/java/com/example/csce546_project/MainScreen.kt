@@ -60,9 +60,10 @@ fun MainScreen() {
 		android.Manifest.permission.CAMERA
 	)
 
-	// Information used for popups and adding/editing pictures
-	val viewModel: PopupViewModel = viewModel()
-	val currentPicture by viewModel.currentPicture.collectAsState()
+	// PictureViewModel info -- keeps track of pictures and popup state
+	val viewModel: PictureViewModel = viewModel()
+	val pictures by viewModel.pictures.observeAsState(emptyList())
+	val currentPicture by viewModel.currentPicture.collectAsState()  // TODO re-implement
 	val showAdd by viewModel.showAddPopup.collectAsState()
 	val showEdit by viewModel.showEditPopup.collectAsState()
 
@@ -211,8 +212,6 @@ fun MainScreen() {
 				) {
 					Text("Test add popup")
 				}
-
-				val pictures by viewModel.pictures.observeAsState(emptyList())
 
 				pictures.forEach { picture ->
 					Button(

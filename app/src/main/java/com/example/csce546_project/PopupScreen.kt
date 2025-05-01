@@ -26,6 +26,7 @@ import java.util.Objects
 
 @Composable
 fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
+    val context = LocalContext.current
     val currentPicture = viewModel.currentPicture.collectAsState()
 
     Column(
@@ -72,7 +73,7 @@ fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
                 Button(
                     onClick = {
                         viewModel.setPictureName("PLACEHOLDER") // TODO remove
-                        viewModel.saveCurrentPicture()
+                        viewModel.saveCurrentPicture(context)
                         onClose()
                     }
                 ) {
@@ -85,6 +86,7 @@ fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
 
 @Composable
 fun EditPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
+    val context = LocalContext.current
     val currentPicture = viewModel.currentPicture.collectAsState()
 
     Column(
@@ -95,6 +97,11 @@ fun EditPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+
+        // TODO debug stuff
+        Text(
+            text = "DEBUG -- URI: " + currentPicture.value?.filepath.toString()
+        )
 
         // TODO fix this shit not updating
         OutlinedTextField(
@@ -117,7 +124,7 @@ fun EditPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
         ) {
             Button(
                 onClick = {
-                    viewModel.deleteCurrentPicture()
+                    viewModel.deleteCurrentPicture(context)
                     onClose()
                 }
             ) {

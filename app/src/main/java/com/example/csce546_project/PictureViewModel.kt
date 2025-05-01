@@ -67,10 +67,10 @@ class PictureViewModel(application: Application) : AndroidViewModel(application)
         return image
     }
 
-    fun saveCurrentPicture() = viewModelScope.launch {
+    fun saveCurrentPicture(context: Context) = viewModelScope.launch {
         _currentPicture.value.also {
             if (it != null)
-                pictureRepository.addPicture(it)
+                pictureRepository.addPicture(it, context)
         }
     }
 
@@ -81,10 +81,10 @@ class PictureViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun deleteCurrentPicture() = viewModelScope.launch {
+    fun deleteCurrentPicture(context: Context) = viewModelScope.launch {
         _currentPicture.value.also {
             if (it != null)
-                pictureRepository.deletePicture(it)
+                pictureRepository.deletePicture(it, context)
         }
     }
 

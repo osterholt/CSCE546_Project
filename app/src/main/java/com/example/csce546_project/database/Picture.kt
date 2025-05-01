@@ -17,9 +17,14 @@ data class PictureEntry (
 /**
  * Class used to store active image data. Loaded from and saved to PictureEntry on start/save.
  */
-class PictureModel(
-    val id: Int?,
-    var name: String?,
-    var filepath: Uri?
-    // TODO additional data
-)
+class PictureModel(val id: Int?, var name: String?, var filepath: Uri?) {
+
+    var faceData: String = "" // TODO make face data
+
+    init {
+        if (filepath != null) {
+            // TODO load in face data from URI here
+            this.faceData = filepath.toString()
+        }
+    }
+}

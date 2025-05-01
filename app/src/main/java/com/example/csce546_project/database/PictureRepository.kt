@@ -1,10 +1,7 @@
 package com.example.csce546_project.database
 
 import android.content.Context
-import android.graphics.Picture
-import android.net.Uri
 import android.util.Log
-import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -85,13 +82,7 @@ class PictureRepository(private val dao: PictureDAO) {
 
     // Converts database entry into active picture object with derived data
     private fun toPictureModel(pictureEntry: PictureEntry): PictureModel {
-        val id: Int = pictureEntry.id
-        val name: String = pictureEntry.name
-        val filepath: Uri = pictureEntry.filepath.toUri()
-
-        // TODO load image/face data into PictureModel
-
-        return PictureModel(id, name, filepath)
+        return PictureModel(pictureEntry.id, pictureEntry.name, pictureEntry.filepath.toUri())
     }
 
     // Converts active picture object to database entry

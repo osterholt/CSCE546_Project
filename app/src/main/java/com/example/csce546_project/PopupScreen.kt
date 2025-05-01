@@ -102,6 +102,9 @@ fun EditPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
         Text(
             text = "DEBUG -- URI: " + currentPicture.value?.filepath.toString()
         )
+        Text(
+            text = "DEBUG -- FACE SHOULD BE URI: " + currentPicture.value?.faceData
+        )
 
         // TODO fix this shit not updating
         OutlinedTextField(

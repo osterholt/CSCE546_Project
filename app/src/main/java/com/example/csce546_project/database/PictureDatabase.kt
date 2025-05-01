@@ -1,4 +1,4 @@
-package com.example.csce546_project
+package com.example.csce546_project.database
 
 import android.content.Context
 import androidx.room.Database

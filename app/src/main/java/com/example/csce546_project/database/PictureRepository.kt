@@ -1,6 +1,7 @@
-package com.example.csce546_project
+package com.example.csce546_project.database
 
 import android.net.Uri
+import android.util.Log
 import androidx.core.net.toUri
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -13,13 +14,17 @@ class PictureRepository(private val dao: PictureDAO) {
             }
         }
 
+
     // Saves picture info to database and creates new image file
     suspend fun addPicture(picture: PictureModel) {
         val pictureEntry: PictureEntry? = toPictureEntry(picture)
+
+        Log.e("DATABASE", "ADDING " + picture + " TO DATABASE")
+
         if (pictureEntry == null)
             return
 
-        // TODO copy file at URI to private app folder and store the new URI
+        // TODO create permanent URI for file and copy image at temp URI over
 
         dao.insertPicture(pictureEntry)
     }
@@ -38,7 +43,7 @@ class PictureRepository(private val dao: PictureDAO) {
         if (pictureEntry == null)
             return
 
-        // TODO delete image file at URI
+        // TODO delete image file at permanent URI
 
         dao.deletePicture(pictureEntry)
     }
@@ -48,6 +53,8 @@ class PictureRepository(private val dao: PictureDAO) {
         val id: Int = pictureEntry.id
         val name: String = pictureEntry.name
         val filepath: Uri = pictureEntry.filepath.toUri()
+
+        // TODO load image/face data into PictureModel
 
         return PictureModel(id, name, filepath)
     }

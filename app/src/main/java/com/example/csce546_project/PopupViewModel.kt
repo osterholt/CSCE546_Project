@@ -2,13 +2,14 @@ package com.example.csce546_project
 
 import android.app.Application
 import android.content.Context
-import android.graphics.Picture
 import android.net.Uri
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import com.example.csce546_project.database.PictureDatabase
+import com.example.csce546_project.database.PictureModel
+import com.example.csce546_project.database.PictureRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch

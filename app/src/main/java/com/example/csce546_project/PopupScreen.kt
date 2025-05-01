@@ -70,9 +70,11 @@ fun AddPopup(viewModel: PopupViewModel, onClose: () -> Unit) {
 
             PickPhotoButton(viewModel)
         } else {
+
+            // TODO fix this shit not updating
             OutlinedTextField(
-                value = "",
-                onValueChange = {/* TODO */ },
+                value = currentPicture.value?.name ?: "PLACEHOLDER",
+                onValueChange = { viewModel.setPictureName("PLACEHOLDER") },
                 label = { Text(text = "Who is this?") },
                 modifier = Modifier
             )
@@ -96,6 +98,7 @@ fun AddPopup(viewModel: PopupViewModel, onClose: () -> Unit) {
 
                 Button(
                     onClick = {
+                        viewModel.setPictureName("PLACEHOLDER") // TODO remove
                         viewModel.saveCurrentPicture()
                         onClose()
                     }
@@ -119,22 +122,22 @@ fun EditPopup(viewModel: PopupViewModel, onClose: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        OutlinedTextField (
-            value = currentPicture.value?.name ?: "NULL",
-            onValueChange = {/* TODO */},
-            label = { Text(text = "Name") },
+
+        // TODO fix this shit not updating
+        OutlinedTextField(
+            value = currentPicture.value?.name ?: "PLACEHOLDER",
+            onValueChange = { viewModel.setPictureName("PLACEHOLDER") },
+            label = { Text(text = "Who is this?") },
             modifier = Modifier
         )
 
-        // TODO show picture here
-        Box(
+        AsyncImage(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.4f)
-                .background(color = Color.Blue)
-        ) {
-
-        }
+                .fillMaxHeight(0.4f),
+            model = currentPicture.value!!.filepath,
+            contentDescription = currentPicture.value!!.name
+        )
 
         Row(
             modifier = Modifier.fillMaxWidth()

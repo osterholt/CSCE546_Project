@@ -1,4 +1,4 @@
-package com.example.csce546_project
+package com.example.csce546_project.database
 
 import android.net.Uri
 import androidx.room.Entity

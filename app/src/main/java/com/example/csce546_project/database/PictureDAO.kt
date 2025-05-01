@@ -1,4 +1,4 @@
-package com.example.csce546_project
+package com.example.csce546_project.database
 
 import androidx.room.Dao
 import androidx.room.Delete

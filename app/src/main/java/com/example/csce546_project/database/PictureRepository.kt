@@ -36,7 +36,7 @@ class PictureRepository(private val dao: PictureDAO) {
         if (!imagesDir.exists())
             imagesDir.mkdir()
         val timestamp = SimpleDateFormat("yyyy_MM_dd_HH:mm:ss", Locale.US).format(Date())
-        val newImage = File(imagesDir, "FaceImage_${timestamp}.jpg")
+        val newImage = File(imagesDir, "FaceImage_${System.currentTimeMillis()}.jpg")
 
         // Copy cached image contents to newly-created file; on failure, delete new file and abort
         try {
@@ -55,28 +55,32 @@ class PictureRepository(private val dao: PictureDAO) {
 
         // Update filepath in picture to new permanent URI and add to database
         val updatedPicture = PictureModel(picture.id, picture.name, newImage.toUri())
-        val databaseEntry = this.toPictureEntry(updatedPicture)
-        if (databaseEntry != null)
-            dao.insertPicture(databaseEntry)
+        val toAdd = this.toPictureEntry(updatedPicture) ?: return
+        dao.insertPicture(toAdd)
     }
 
     // Saves picture info to database and does not create new image file
     suspend fun updatePicture(picture: PictureModel) {
-        val pictureEntry: PictureEntry? = toPictureEntry(picture)
-        if (pictureEntry == null)
-            return
-        dao.insertPicture(pictureEntry)
+        val toUpdate: PictureEntry = toPictureEntry(picture) ?: return
+        dao.insertPicture(toUpdate)
     }
 
     // Deletes picture info from database and associated image file
     suspend fun deletePicture(picture: PictureModel, context: Context) {
-        val pictureEntry: PictureEntry? = toPictureEntry(picture)
-        if (pictureEntry == null)
+        val toDelete: PictureEntry = toPictureEntry(picture) ?: return
+
+        // Delete the picture at the given URI
+        try {
+            val storedImage = File(picture.filepath.toString())
+            storedImage.delete()
+        }
+        catch (e: Exception) {
+            Log.e("DATABASE::deletePicture()", "Error deleting image at ${toDelete.filepath}")
             return
+        }
 
-        // TODO delete image file at permanent URI
-
-        dao.deletePicture(pictureEntry)
+        // Delete entry from database
+        dao.deletePicture(toDelete)
     }
 
     // Converts database entry into active picture object with derived data

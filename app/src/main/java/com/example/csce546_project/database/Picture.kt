@@ -1,4 +1,4 @@
-package com.example.csce546_project
+package com.example.csce546_project.database
 
 import android.net.Uri
 import androidx.room.Entity
@@ -11,16 +11,15 @@ import androidx.room.PrimaryKey
 data class PictureEntry (
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val name: String,
-    val filepath: String  // TODO convert Uri to String before storing
+    val filepath: String
 )
 
 /**
  * Class used to store active image data. Loaded from and saved to PictureEntry on start/save.
- * TODO learn how to map between the two for database loading/saving -- possibly make normal class
  */
-data class PictureModel(
-    val id: Int = 0,
-    val name: String?,
-    val filepath: Uri?,
-    // TODO include bitmap
+class PictureModel(
+    val id: Int?,
+    var name: String?,
+    var filepath: Uri?
+    // TODO additional data
 )

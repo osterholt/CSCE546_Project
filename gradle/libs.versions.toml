@@ -24,6 +24,7 @@ roomRuntime = "2.6.1"
 lifecycleLivedataKtx = "2.8.7"
 runtimeLivedata = "1.7.8"
 visionCommon = "17.3.0"
+runtimeLivedataVersion = "1.8.0"
 
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
@@ -64,6 +65,7 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 vision-common = { module = "com.google.mlkit:vision-common", version.ref = "visionCommon" }
+runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata", version.ref = "runtimeLivedataVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

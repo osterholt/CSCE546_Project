@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -30,7 +31,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -39,6 +39,7 @@ import androidx.compose.ui.window.Popup
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.csce546_project.database.PictureEntry
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -59,9 +60,10 @@ fun MainScreen() {
 		android.Manifest.permission.CAMERA
 	)
 
-	// Information used for popups and adding/editing pictures
-	val viewModel: PopupViewModel = viewModel()
-	val currentPicture by viewModel.currentPicture.collectAsState()
+	// PictureViewModel info -- keeps track of pictures and popup state
+	val viewModel: PictureViewModel = viewModel()
+	val pictures by viewModel.pictures.observeAsState(emptyList())
+	val currentPicture by viewModel.currentPicture.collectAsState()  // TODO re-implement
 	val showAdd by viewModel.showAddPopup.collectAsState()
 	val showEdit by viewModel.showEditPopup.collectAsState()
 
@@ -205,22 +207,20 @@ fun MainScreen() {
 			Column(
 				modifier = Modifier.fillMaxWidth().fillMaxHeight().background(color = Color.Red)
 			) {
-				Text(
-					text = "TODO picture list",
-					fontWeight = FontWeight.Bold,
-					fontSize = 36.sp
-				)
-
 				Button(
 					onClick = { viewModel.openAddPopup() },
 				) {
 					Text("Test add popup")
 				}
 
-				Button(
-					onClick = { /* TODO open edit popup */ },
-				) {
-					Text("Test view popup")
+				pictures.forEach { picture ->
+					Button(
+						onClick = { viewModel.openEditPopup(picture) }
+					) {
+						Text(
+							text = ("ID=" + picture.id + " | NAME=" + (picture.name ?: "NULL"))
+						)
+					}
 				}
 			}
 		}

@@ -21,18 +21,18 @@ data class PictureEntry (
 /**
  * Class used to store active image data. Loaded from and saved to PictureEntry on start/save.
  */
-class PictureModel(val id: Int?, var name: String?, var filepath: Uri?) {
+class PictureModel(val id: Int?, var name: String?, var uri: Uri?) {
 
     var faceData: Bitmap? = null  // TODO make face data
 
     init {
         // TODO below is example code to open file and turn it into a bitmap -- rework it
-        val storedPath: Uri? = this.filepath
-        if (storedPath?.path != null) {
-            val imageFile = File(storedPath.path!!)
+        val imageUri: Uri? = this.uri
+        if (imageUri?.path != null) {
+            val imageFile = File(imageUri.path!!)
             this.faceData = BitmapFactory.decodeFile(imageFile.absolutePath)
             if (this.faceData == null) {
-                Log.e("PictureModel::init","IMAGE NOT FOUND AT PATH: " + this.filepath)
+                Log.e("PictureModel::init","IMAGE NOT FOUND AT PATH: " + this.uri)
             } else {
                 Log.d("PictureModel::init", "IMAGE OPENED SUCCESSFULLY")
             }

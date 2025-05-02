@@ -37,7 +37,7 @@ fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (currentPicture.value?.filepath == null) {
+        if (currentPicture.value?.uri == null) {
             TakePhotoButton(viewModel)
 
             Text(text = "or")
@@ -57,7 +57,7 @@ fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(0.4f),
-                model = currentPicture.value!!.filepath,
+                model = currentPicture.value!!.uri,
                 contentDescription = ""
             )
 
@@ -100,7 +100,7 @@ fun EditPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
 
         // TODO debug stuff
         Text(
-            text = "DEBUG -- URI: " + currentPicture.value?.filepath.toString()
+            text = "DEBUG -- URI: " + currentPicture.value?.uri.toString()
         )
         Text(
             text = "DEBUG -- FACE SHOULD BE URI: " + currentPicture.value?.faceData
@@ -118,7 +118,7 @@ fun EditPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.4f),
-            model = currentPicture.value!!.filepath,
+            model = currentPicture.value!!.uri,
             contentDescription = currentPicture.value!!.name
         )
 

@@ -46,7 +46,7 @@ class PictureViewModel(application: Application) : AndroidViewModel(application)
         if (this._currentPicture.value == null)
             this._currentPicture.value = PictureModel(null, null, filepath)
         else
-            _currentPicture.value = _currentPicture.value?.also { it.filepath = filepath }
+            _currentPicture.value = _currentPicture.value?.also { it.uri = filepath }
     }
 
     fun clearPicture() {

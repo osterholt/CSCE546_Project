@@ -25,7 +25,7 @@ class PictureRepository(private val dao: PictureDAO) {
     suspend fun addPicture(picture: PictureModel, context: Context) {
 
         // Storing filepath to avoid compiler errors from later use (since it's mutable)
-        val storedFilepath = picture.filepath
+        val storedFilepath = picture.uri
         if (picture.name == null || storedFilepath == null)
             return
 
@@ -34,7 +34,7 @@ class PictureRepository(private val dao: PictureDAO) {
         if (!imagesDir.exists())
             imagesDir.mkdir()
         val timestamp = SimpleDateFormat("yyyy_MM_dd_HH:mm:ss", Locale.US).format(Date())
-        val newImage = File(imagesDir, "FaceImage_${System.currentTimeMillis()}.jpg")
+        val newImage = File(imagesDir, "FaceImage_${timestamp}.jpg")
 
         // Copy cached image contents to newly-created file; on failure, delete new file and abort
         try {
@@ -69,7 +69,7 @@ class PictureRepository(private val dao: PictureDAO) {
 
         // Delete the picture at the given URI
         try {
-            val storedPath: Uri = picture.filepath!!
+            val storedPath: Uri = picture.uri!!
             val storedImage = File(storedPath.path!!)
             storedImage.delete()
         }
@@ -92,9 +92,9 @@ class PictureRepository(private val dao: PictureDAO) {
         val id: Int = pictureModel.id ?: 0
         val name: String? = pictureModel.name
 
-        if (name == null || pictureModel.filepath == null)
+        if (name == null || pictureModel.uri == null)
             return null
 
-        return PictureEntry(id, name, pictureModel.filepath.toString())
+        return PictureEntry(id, name, pictureModel.uri.toString())
     }
 }

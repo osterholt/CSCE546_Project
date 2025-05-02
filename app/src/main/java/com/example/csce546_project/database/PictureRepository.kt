@@ -1,6 +1,7 @@
 package com.example.csce546_project.database
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.core.net.toUri
 import kotlinx.coroutines.flow.Flow
@@ -68,7 +69,8 @@ class PictureRepository(private val dao: PictureDAO) {
 
         // Delete the picture at the given URI
         try {
-            val storedImage = File(picture.filepath.toString())
+            val storedPath: Uri = picture.filepath!!
+            val storedImage = File(storedPath.path!!)
             storedImage.delete()
         }
         catch (e: Exception) {

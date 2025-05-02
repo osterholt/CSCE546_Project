@@ -1,8 +1,12 @@
 package com.example.csce546_project.database
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Log
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import java.io.File
 
 /**
  * Class used to map instance variables to table columns
@@ -19,12 +23,19 @@ data class PictureEntry (
  */
 class PictureModel(val id: Int?, var name: String?, var filepath: Uri?) {
 
-    var faceData: String = "" // TODO make face data
+    var faceData: Bitmap? = null  // TODO make face data
 
     init {
-        if (filepath != null) {
-            // TODO load in face data from URI here
-            this.faceData = filepath.toString()
+        // TODO below is example code to open file and turn it into a bitmap -- rework it
+        val storedPath: Uri? = this.filepath
+        if (storedPath?.path != null) {
+            val imageFile = File(storedPath.path!!)
+            this.faceData = BitmapFactory.decodeFile(imageFile.absolutePath)
+            if (this.faceData == null) {
+                Log.e("PictureModel::init","IMAGE NOT FOUND AT PATH: " + this.filepath)
+            } else {
+                Log.d("PictureModel::init", "IMAGE OPENED SUCCESSFULLY")
+            }
         }
     }
 }

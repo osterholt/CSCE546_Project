@@ -64,7 +64,7 @@ class PictureRepository(private val dao: PictureDAO) {
     }
 
     // Deletes picture info from database and associated image file
-    suspend fun deletePicture(picture: PictureModel, context: Context) {
+    suspend fun deletePicture(picture: PictureModel) {
         val toDelete: PictureEntry = toPictureEntry(picture) ?: return
 
         // Delete the picture at the given URI

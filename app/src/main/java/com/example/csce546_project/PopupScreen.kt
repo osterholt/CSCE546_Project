@@ -26,6 +26,7 @@ import java.util.Objects
 
 @Composable
 fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
+    val context = LocalContext.current
     val currentPicture = viewModel.currentPicture.collectAsState()
 
     Column(
@@ -36,7 +37,7 @@ fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (currentPicture.value?.filepath == null) {
+        if (currentPicture.value?.uri == null) {
             TakePhotoButton(viewModel)
 
             Text(text = "or")
@@ -56,7 +57,7 @@ fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(0.4f),
-                model = currentPicture.value!!.filepath,
+                model = currentPicture.value!!.uri,
                 contentDescription = ""
             )
 
@@ -72,7 +73,7 @@ fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
                 Button(
                     onClick = {
                         viewModel.setPictureName("PLACEHOLDER") // TODO remove
-                        viewModel.saveCurrentPicture()
+                        viewModel.saveCurrentPicture(context)
                         onClose()
                     }
                 ) {
@@ -85,6 +86,7 @@ fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
 
 @Composable
 fun EditPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
+    val context = LocalContext.current
     val currentPicture = viewModel.currentPicture.collectAsState()
 
     Column(
@@ -95,6 +97,14 @@ fun EditPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+
+        // TODO debug stuff
+        Text(
+            text = "DEBUG -- URI: " + currentPicture.value?.uri.toString()
+        )
+        Text(
+            text = "DEBUG -- FACE SHOULD BE URI: " + currentPicture.value?.faceData
+        )
 
         // TODO fix this shit not updating
         OutlinedTextField(
@@ -108,7 +118,7 @@ fun EditPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.4f),
-            model = currentPicture.value!!.filepath,
+            model = currentPicture.value!!.uri,
             contentDescription = currentPicture.value!!.name
         )
 
@@ -117,7 +127,7 @@ fun EditPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
         ) {
             Button(
                 onClick = {
-                    viewModel.deleteCurrentPicture()
+                    viewModel.deleteCurrentPicture(context)
                     onClose()
                 }
             ) {

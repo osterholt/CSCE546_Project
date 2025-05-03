@@ -73,6 +73,9 @@ fun MainScreen() {
 	var imageWidth by remember { mutableStateOf(1) }
 	var imageHeight by remember { mutableStateOf(1) }
 	var detectedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+	val faceAnalyzer = remember {
+		FaceAnalyzer { _, _, _ -> }
+	}
 
 	val TEST_PICTURE = PictureEntry(0, "Example", "exampleFilePath")  // TODO
 
@@ -187,8 +190,17 @@ fun MainScreen() {
 						}
 					}
 
-
+					// This is the name of the face detected
 					Box(modifier = Modifier) {
+						for(picture in pictures) {
+							// TODO: Detect bitmap error
+							if(picture.mlFace == null) {
+								faceAnalyzer.analyzeBitmap(bitmap = picture.faceData) { faces ->
+									if(!faces.isEmpty())
+										picture.mlFace = faces.first() //TODO: is this the best way to decide faces?
+								}
+							}
+						}
 						Text(
 							text = defaultName,
 							fontSize = 20.sp,

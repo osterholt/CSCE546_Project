@@ -41,6 +41,11 @@ android {
 }
 
 dependencies {
+	// Tensor Flow
+	implementation(libs.tensorflow.lite)
+	implementation(libs.tensorflow.lite.gpu)
+	implementation(libs.tensorflow.lite.support)
+
 	// AppCompat (usually already present)
 	implementation(libs.androidx.appcompat) // or latest
 

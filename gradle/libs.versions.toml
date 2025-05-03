@@ -23,6 +23,9 @@ cameraLifecycle = "1.4.1"
 roomRuntime = "2.6.1"
 lifecycleLivedataKtx = "2.8.7"
 runtimeLivedata = "1.7.8"
+tensorflowLite = "2.17.0"
+tensorflowLiteGpu = "2.17.0"
+tensorflowLiteSupport = "0.4.2"
 visionCommon = "17.3.0"
 runtimeLivedataVersion = "1.8.0"
 
@@ -64,6 +67,9 @@ androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+tensorflow-lite = { module = "org.tensorflow:tensorflow-lite", version.ref = "tensorflowLite" }
+tensorflow-lite-gpu = { module = "org.tensorflow:tensorflow-lite-gpu", version.ref = "tensorflowLiteGpu" }
+tensorflow-lite-support = { module = "org.tensorflow:tensorflow-lite-support", version.ref = "tensorflowLiteSupport" }
 vision-common = { module = "com.google.mlkit:vision-common", version.ref = "visionCommon" }
 runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata", version.ref = "runtimeLivedataVersion" }
 

@@ -32,7 +32,6 @@ import java.util.Objects
 fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
     val context = LocalContext.current
     val currentPicture = viewModel.currentPicture.collectAsState()
-    var nameInput by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -48,9 +47,9 @@ fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
             Text(text = "or")
 
             PickPhotoButton(viewModel)
-        } else {
-
-            // TODO change to use viewModel
+        }
+        else {
+            var nameInput by remember { mutableStateOf("") }
             OutlinedTextField(
                 value = nameInput,
                 onValueChange = { nameInput = it },
@@ -77,9 +76,11 @@ fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
 
                 Button(
                     onClick = {
-                        viewModel.setPictureName(nameInput)
-                        viewModel.saveCurrentPicture(context)
-                        onClose()
+                        if (nameInput.isNotEmpty()) {
+                            viewModel.setPictureName(nameInput)
+                            viewModel.saveCurrentPicture(context)
+                            onClose()
+                        }
                     }
                 ) {
                     Text(text = "Save")
@@ -93,7 +94,6 @@ fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
 fun EditPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
     val context = LocalContext.current
     val currentPicture = viewModel.currentPicture.collectAsState()
-    var nameInput by remember { mutableStateOf(currentPicture.value?.name ?: "NULL") }
 
     Column(
         modifier = Modifier
@@ -103,10 +103,9 @@ fun EditPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-
-        // TODO change to use viewModel
+        var nameInput by remember { mutableStateOf(currentPicture.value?.name ?: "") }
         OutlinedTextField(
-            value = nameInput ?: "NULL",
+            value = nameInput,
             onValueChange = { nameInput = it },
             label = { Text(text = "Edit Name") },
             modifier = Modifier
@@ -133,9 +132,11 @@ fun EditPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
             }
             Button(
                 onClick = {
-                    viewModel.setPictureName(nameInput)
-                    viewModel.updateCurrentPicture()
-                    onClose()
+                    if (nameInput.isNotEmpty()) {
+                        viewModel.setPictureName(nameInput)
+                        viewModel.updateCurrentPicture()
+                        onClose()
+                    }
                 }
             ) {
                 Text(text = "Save and Close")

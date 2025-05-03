@@ -84,7 +84,7 @@ class PictureViewModel(application: Application) : AndroidViewModel(application)
     fun deleteCurrentPicture(context: Context) = viewModelScope.launch {
         _currentPicture.value.also {
             if (it != null)
-                pictureRepository.deletePicture(it, context)
+                pictureRepository.deletePicture(it)
         }
     }
 

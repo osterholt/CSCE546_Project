@@ -1,34 +1,35 @@
 package com.example.csce546_project
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.ImageFormat
 import android.graphics.Matrix
 import android.graphics.Rect
+import android.graphics.YuvImage
 import android.media.Image
 import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
+import com.example.csce546_project.database.PictureModel
 import com.example.csce546_project.model.FaceNetModel
 import com.example.csce546_project.model.Prediction
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.nio.ByteBuffer
+import java.io.ByteArrayOutputStream
 import java.util.concurrent.Executors
-import androidx.core.graphics.createBitmap
-import com.example.csce546_project.database.PictureModel
 import kotlin.math.pow
 import kotlin.math.sqrt
 
-class FaceAnalyzer(context: Context,
-				   private var model: FaceNetModel,
+class FaceAnalyzer(private var model: FaceNetModel,
 				   private var pictures: List<PictureModel>,
-				   onFacesDetected: (List<Rect>, Int, Int) -> Unit) : ImageAnalysis.Analyzer {
+				   private val onFacesDetected: (List<Face>, Prediction) -> Unit) : ImageAnalysis.Analyzer {
 	private val executor = Executors.newCachedThreadPool()
 	private var isProcessing = false
 
@@ -52,26 +53,26 @@ class FaceAnalyzer(context: Context,
 			return
 		} else {
 			isProcessing = true
-			val cameraXImage = imageProxy.image!!
-			var frameBitmap = createBitmap(cameraXImage.width, cameraXImage.height) // FIXED
-			frameBitmap.copyPixelsFromBuffer( imageProxy.planes[0].buffer )
-			frameBitmap = rotateBitmap( frameBitmap , imageProxy.imageInfo.rotationDegrees.toFloat() )
+			val mediaImage = imageProxy.image
+			if (mediaImage != null) {
+				val rotationDegrees = imageProxy.imageInfo.rotationDegrees
+				val bitmap = toBitmap(mediaImage)
+				val rotatedBitmap = rotateBitmap(bitmap, rotationDegrees.toFloat())
 
-			val inputImage = InputImage.fromBitmap(frameBitmap, 0)
-			detector.process(inputImage)
-				.addOnSuccessListener(executor) { faces ->
-					// TODO: RUN MODEL with FACES
-					val faceRects = faces.map { it.boundingBox }
-					val imageWidth = inputImage.width
-					val imageHeight = inputImage.height
-					onFacesDetected(faceRects, imageWidth, imageHeight)
-				}
-				.addOnFailureListener(executor) { e ->
-					e.printStackTrace()
-				}
-				.addOnCompleteListener {
-					imageProxy.close()
-				}
+				val inputImage = InputImage.fromBitmap(rotatedBitmap, 0)
+				detector.process(inputImage)
+					.addOnSuccessListener(executor) { faces ->
+						CoroutineScope(Dispatchers.Default).launch {
+							runModel(faces, rotatedBitmap)
+						}
+					}
+					.addOnFailureListener(executor) { e ->
+						e.printStackTrace()
+					}
+					.addOnCompleteListener {
+						imageProxy.close()
+					}
+			}
 		}
 	}
 
@@ -80,9 +81,6 @@ class FaceAnalyzer(context: Context,
 			val predictions = ArrayList<Prediction>()
 			for (face in faces) {
 				try {
-					// Crop the frame using face.boundingbox
-					val croppedBitmap = cropRectFromBitmap(cameraFrameBitmap, face.boundingBox)
-
 					// Some code examples have a detector for if the user is wearing a mask, we are ignoring this for now
 
 					for (i in 0 until pictures.size) {
@@ -102,11 +100,41 @@ class FaceAnalyzer(context: Context,
 								nameScoreHashmap[ pictures[ i ] ]?.add( L2Norm( subject , pictures[i].mlFace ) )
 							}
 						}
-						//TODO: Analize the best scores
+
+						//Analyze the best scores
+						val avgScores = nameScoreHashmap.values.map { scores -> scores.toFloatArray().average() }
+						val names = nameScoreHashmap.keys.map { picture -> picture.name }
+						nameScoreHashmap.clear() // Any namescore declarations end here
+
+						val bestScoreName: String = if (metricToBeUsed == "cosine") {
+							if (avgScores.maxOrNull()!! > model.model.cosineThreshold) {
+								names[avgScores.indexOf(avgScores.maxOrNull()!!)] ?: "Unknown"
+							} else {
+								"Unknown"
+							}
+						} else {
+							if (avgScores.minOrNull()!! > model.model.l2Threshold) {
+								"Unknown"
+							} else {
+								names[avgScores.indexOf(avgScores.minOrNull()!!)] ?: "Unknown"
+							}
+						}
+						predictions.add(
+							Prediction(
+								face.boundingBox,
+								bestScoreName
+							)
+						)
 					}
 				} catch (e: Exception) {
 					e.printStackTrace()
 				}
+			}
+			withContext(Dispatchers.Main) {
+				if(!predictions.isEmpty()) {
+					onFacesDetected(faces, predictions.first())
+				}
+				isProcessing = false
 			}
 		}
 	}
@@ -144,25 +172,48 @@ class FaceAnalyzer(context: Context,
 		return dot / (mag1 * mag2)
 	}
 
-	private fun downsampleMediaImage(mediaImage: Image?, sampleSize: Int): Bitmap? {
-		mediaImage?.let {
-			// Extract the image bytes from the ImageProxy
-			val plane = mediaImage.planes[0]
-			val buffer: ByteBuffer = plane.buffer
-			val byteArray = ByteArray(buffer.remaining())
-			buffer.get(byteArray)
+	fun toBitmap(image: Image): Bitmap {
+		val yBuffer = image.planes[0].buffer
+		val uBuffer = image.planes[1].buffer
+		val vBuffer = image.planes[2].buffer
 
-			// Use BitmapFactory to decode the byte array and downsample the image
-			val options = BitmapFactory.Options().apply {
-				inSampleSize = sampleSize  // Set sample size for downsampling
-			}
+		val ySize = yBuffer.remaining()
+		val uSize = uBuffer.remaining()
+		val vSize = vBuffer.remaining()
 
-			val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size, options)
+		val nv21 = ByteArray(ySize + uSize + vSize)
 
-			// Close the ImageProxy to avoid memory leaks
-			mediaImage.close()
-			return bitmap
-		}
-		return null  // Return null if the image is not available
+		yBuffer.get(nv21, 0, ySize)
+		vBuffer.get(nv21, ySize, vSize)
+		uBuffer.get(nv21, ySize + vSize, uSize)
+
+		val yuvImage = YuvImage(nv21, ImageFormat.NV21, image.width, image.height, null)
+		val out = ByteArrayOutputStream()
+		yuvImage.compressToJpeg(Rect(0, 0, image.width, image.height), 100, out)
+		val jpegBytes = out.toByteArray()
+
+		return BitmapFactory.decodeByteArray(jpegBytes, 0, jpegBytes.size)
 	}
+
+//	private fun downsampleMediaImage(mediaImage: Image?, sampleSize: Int): Bitmap? {
+//		mediaImage?.let {
+//			// Extract the image bytes from the ImageProxy
+//			val plane = mediaImage.planes[0]
+//			val buffer: ByteBuffer = plane.buffer
+//			val byteArray = ByteArray(buffer.remaining())
+//			buffer.get(byteArray)
+//
+//			// Use BitmapFactory to decode the byte array and downsample the image
+//			val options = BitmapFactory.Options().apply {
+//				inSampleSize = sampleSize  // Set sample size for downsampling
+//			}
+//
+//			val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size, options)
+//
+//			// Close the ImageProxy to avoid memory leaks
+//			mediaImage.close()
+//			return bitmap
+//		}
+//		return null  // Return null if the image is not available
+//	}
 }

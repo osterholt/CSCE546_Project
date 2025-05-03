@@ -1,8 +1,8 @@
 package com.example.csce546_project
 
+import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.Matrix
-import android.graphics.Rect
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageProxy
 import androidx.camera.view.PreviewView
@@ -40,9 +40,13 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.csce546_project.database.PictureEntry
+import com.example.csce546_project.model.FaceNetModel
+import com.example.csce546_project.model.Models
+import com.example.csce546_project.model.Prediction
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import com.google.mlkit.vision.face.Face
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -57,7 +61,7 @@ fun MainScreen() {
 
 	// Check Camera Permissions
 	val cameraPermissionState = rememberPermissionState(
-		android.Manifest.permission.CAMERA
+		Manifest.permission.CAMERA
 	)
 
 	// PictureViewModel info -- keeps track of pictures and popup state
@@ -68,14 +72,17 @@ fun MainScreen() {
 	val showEdit by viewModel.showEditPopup.collectAsState()
 
 	// Cam's AI Boxes
-	var faces by remember { mutableStateOf(emptyList<Rect>()) }
+	var faces by remember { mutableStateOf(emptyList<Face>()) }
 	var imageCaptured by remember { mutableStateOf(false) }
-	var imageWidth by remember { mutableStateOf(1) }
-	var imageHeight by remember { mutableStateOf(1) }
 	var detectedBitmap by remember { mutableStateOf<Bitmap?>(null) }
-	val faceAnalyzer = remember {
-		FaceAnalyzer { _, _, _ -> }
-	}
+	var namePrediction by remember { mutableStateOf<Prediction?>(null) }
+	val modelInfo = Models.FACENET
+	val useGpu = true
+	val faceNetModel = FaceNetModel(context, modelInfo , useGpu )
+//	val faceAnalyzer = remember {
+//		FaceAnalyzer(faceNetModel, pictures) { _, _ -> }
+//	}
+
 
 	val TEST_PICTURE = PictureEntry(0, "Example", "exampleFilePath")  // TODO
 
@@ -120,26 +127,29 @@ fun MainScreen() {
 								previewView = previewView,
 								imageCapture = imageCapture,
 								lifecycleOwner = lifecycleOwner,
-								onFacesDetected = { detectedFaces, width, height ->
-									if(detectedFaces.isNotEmpty() && !imageCaptured) {
+								model = faceNetModel,
+								pictures = pictures,
+								onFacesDetected = { detectedFaces, prediction ->
+									if (detectedFaces.isNotEmpty() && !imageCaptured) {
 										imageCapture.takePicture(
 											ContextCompat.getMainExecutor(context),
 											object : ImageCapture.OnImageCapturedCallback() {
 												override fun onCaptureSuccess(image: ImageProxy) {
 													val bitmap = image.toBitmap()
-													val rotationDegrees = image.imageInfo.rotationDegrees
-													val rotatedBitmap = rotateBitmap(bitmap, rotationDegrees.toFloat())
+													val rotationDegrees =
+														image.imageInfo.rotationDegrees
+													val rotatedBitmap = rotateBitmap(
+														bitmap,
+														rotationDegrees.toFloat()
+													)
 													detectedBitmap = rotatedBitmap
-//													imageWidth = image.width
-//													imageHeight = image.height
 													image.close()
 													imageCaptured = true
 												}
 											}
 										)
 										faces = detectedFaces
-										imageWidth = width
-										imageHeight = height
+										namePrediction = prediction
 									}
 								}
 							)
@@ -160,9 +170,9 @@ fun MainScreen() {
 
 						// Display face details and such
 						FaceBoxOverlay(
-							faces = faces,
-							imageWidth = imageWidth,
-							imageHeight = imageHeight,
+							faces = faces.map { face -> face.boundingBox },
+							imageWidth = detectedBitmap?.width ?: 0,
+							imageHeight = detectedBitmap?.height ?: 0,
 							modifier = Modifier.fillMaxSize()
 						)
 
@@ -192,17 +202,8 @@ fun MainScreen() {
 
 					// This is the name of the face detected
 					Box(modifier = Modifier) {
-						for(picture in pictures) {
-							// TODO: Detect bitmap error
-							if(picture.mlFace == null) {
-								faceAnalyzer.analyzeBitmap(bitmap = picture.faceData) { faces ->
-									if(!faces.isEmpty())
-										picture.mlFace = faces.first() //TODO: is this the best way to decide faces?
-								}
-							}
-						}
 						Text(
-							text = defaultName,
+							text = namePrediction?.label ?: defaultName,
 							fontSize = 20.sp,
 							textAlign = TextAlign.Center
 						)

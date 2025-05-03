@@ -16,11 +16,13 @@ class FaceNetModel(context: Context,
 
 	init {
 		val interpreterOptions = Interpreter.Options().apply {
-			if(useGpu) {
-				if(CompatibilityList().isDelegateSupportedOnThisDevice)
-					addDelegate( GpuDelegate( CompatibilityList().bestOptionsForThisDevice ))
+			if (useGpu) {
+				val compatList = CompatibilityList()
+				if (compatList.isDelegateSupportedOnThisDevice) {
+					addDelegate(GpuDelegate(compatList.bestOptionsForThisDevice))
+				}
 			} else {
-				// TODO: Implement threads
+				numThreads = 4
 			}
 		}
 		interpreter = Interpreter(FileUtil.loadMappedFile(context, model.assetsFilename), interpreterOptions)

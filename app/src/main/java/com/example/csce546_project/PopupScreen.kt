@@ -15,6 +15,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,6 +32,7 @@ import java.util.Objects
 fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
     val context = LocalContext.current
     val currentPicture = viewModel.currentPicture.collectAsState()
+    var nameInput by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -45,10 +50,10 @@ fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
             PickPhotoButton(viewModel)
         } else {
 
-            // TODO fix this shit not updating
+            // TODO change to use viewModel
             OutlinedTextField(
-                value = currentPicture.value?.name ?: "PLACEHOLDER",
-                onValueChange = { viewModel.setPictureName("PLACEHOLDER") },
+                value = nameInput,
+                onValueChange = { nameInput = it },
                 label = { Text(text = "Who is this?") },
                 modifier = Modifier
             )
@@ -72,7 +77,7 @@ fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
 
                 Button(
                     onClick = {
-                        viewModel.setPictureName("PLACEHOLDER") // TODO remove
+                        viewModel.setPictureName(nameInput)
                         viewModel.saveCurrentPicture(context)
                         onClose()
                     }
@@ -88,6 +93,7 @@ fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
 fun EditPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
     val context = LocalContext.current
     val currentPicture = viewModel.currentPicture.collectAsState()
+    var nameInput by remember { mutableStateOf(currentPicture.value?.name ?: "NULL") }
 
     Column(
         modifier = Modifier
@@ -98,19 +104,11 @@ fun EditPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
 
-        // TODO debug stuff
-        Text(
-            text = "DEBUG -- URI: " + currentPicture.value?.uri.toString()
-        )
-        Text(
-            text = "DEBUG -- FACE SHOULD BE URI: " + currentPicture.value?.faceData
-        )
-
-        // TODO fix this shit not updating
+        // TODO change to use viewModel
         OutlinedTextField(
-            value = currentPicture.value?.name ?: "PLACEHOLDER",
-            onValueChange = { viewModel.setPictureName("PLACEHOLDER") },
-            label = { Text(text = "Who is this?") },
+            value = nameInput ?: "NULL",
+            onValueChange = { nameInput = it },
+            label = { Text(text = "Edit Name") },
             modifier = Modifier
         )
 
@@ -135,6 +133,7 @@ fun EditPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
             }
             Button(
                 onClick = {
+                    viewModel.setPictureName(nameInput)
                     viewModel.updateCurrentPicture()
                     onClose()
                 }

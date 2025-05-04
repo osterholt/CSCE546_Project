@@ -7,6 +7,7 @@ import android.graphics.Matrix
 import android.graphics.Rect
 import android.graphics.YuvImage
 import android.media.Image
+import android.util.Log
 import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
@@ -53,6 +54,9 @@ class FaceAnalyzer(private var model: FaceNetModel,
 			return
 		} else {
 			isProcessing = true
+			Log.d("FaceAnalyzer - Analyze", "Is processing: True")
+			Log.d("FaceAnalyzer - Analyze", "Image proxy == ${imageProxy.image != null}")
+			Log.d("FaceAnalyzer - Analyze", "Image Proxy Format: ${imageProxy.format}, Width: ${imageProxy.width}, Height: ${imageProxy.height}")
 			val mediaImage = imageProxy.image
 			if (mediaImage != null) {
 				val rotationDegrees = imageProxy.imageInfo.rotationDegrees
@@ -62,11 +66,14 @@ class FaceAnalyzer(private var model: FaceNetModel,
 				val inputImage = InputImage.fromBitmap(rotatedBitmap, 0)
 				detector.process(inputImage)
 					.addOnSuccessListener(executor) { faces ->
+						Log.d("FaceAnalyzer - Analyze", "Detector Process Image successful")
 						CoroutineScope(Dispatchers.Default).launch {
 							runModel(faces, rotatedBitmap)
 						}
 					}
 					.addOnFailureListener(executor) { e ->
+						isProcessing = false
+						Log.e("FaceAnalyzer - Analyze", "Is processing: False from Error")
 						e.printStackTrace()
 					}
 					.addOnCompleteListener {
@@ -79,10 +86,12 @@ class FaceAnalyzer(private var model: FaceNetModel,
 	private suspend fun runModel(faces: List<Face>, cameraFrameBitmap: Bitmap) {
 		withContext(Dispatchers.Default) {
 			val predictions = ArrayList<Prediction>()
+			Log.d("FaceAnalyzer - Run Model", "Number of faces = " + faces.size)
 			for (face in faces) {
 				try {
 					// Some code examples have a detector for if the user is wearing a mask, we are ignoring this for now
-
+					val croppedBitmap = cropRectFromBitmap(cameraFrameBitmap, face.boundingBox)
+					subject = model.getFaceEmbedding(croppedBitmap)
 					for (i in 0 until pictures.size) {
 						if( nameScoreHashmap[pictures[i]] == null ) {
 							val p = ArrayList<Float>()
@@ -119,6 +128,7 @@ class FaceAnalyzer(private var model: FaceNetModel,
 								names[avgScores.indexOf(avgScores.minOrNull()!!)] ?: "Unknown"
 							}
 						}
+						Log.d("FaceAnalyzer - Run Model", "bestScoreName is \"${bestScoreName}\"")
 						predictions.add(
 							Prediction(
 								face.boundingBox,
@@ -127,6 +137,7 @@ class FaceAnalyzer(private var model: FaceNetModel,
 						)
 					}
 				} catch (e: Exception) {
+					Log.e("FaceAnalyzer - Run Model", "Error during model execution: ${e.message}") // Added log
 					e.printStackTrace()
 				}
 			}
@@ -134,6 +145,7 @@ class FaceAnalyzer(private var model: FaceNetModel,
 				if(!predictions.isEmpty()) {
 					onFacesDetected(faces, predictions.first())
 				}
+				Log.d("FaceAnalyzer - Run Model", "Is Processing: False from Clean Exit")
 				isProcessing = false
 			}
 		}

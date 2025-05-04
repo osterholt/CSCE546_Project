@@ -31,7 +31,7 @@ private fun bindPreview(
 	}
 
 	val cameraSelector = CameraSelector.Builder()
-		.requireLensFacing(CameraSelector.LENS_FACING_BACK)
+		.requireLensFacing(CameraSelector.LENS_FACING_FRONT) //SWITCHED TO SELFIE
 		.build()
 
 	cameraProvider.unbindAll()

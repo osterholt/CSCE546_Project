@@ -36,6 +36,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -94,6 +95,10 @@ fun MainScreen() {
 		if (showAdd) {
 			Popup (
 				onDismissRequest = { viewModel.closePopup() },
+				properties = PopupProperties(
+					focusable = true,
+					dismissOnClickOutside = true
+				),
 				alignment = Alignment.Center
 			) {
 				AddPopup(viewModel, { viewModel.closePopup() })
@@ -102,6 +107,10 @@ fun MainScreen() {
 		else if (showEdit) {
 			Popup (
 				onDismissRequest = { viewModel.closePopup() },
+				properties = PopupProperties(
+					focusable = true,
+					dismissOnClickOutside = true
+				),
 				alignment = Alignment.Center
 			) {
 				EditPopup(viewModel, { viewModel.closePopup() })

@@ -6,4 +6,5 @@ Cam had to leave shortly after recording, so we did our video in one take. On to
 https://www.youtube.com/watch?v=feGs2FVfYew
 
 ## APK
-APK can be found in the root of the project, titled "FaceRecognizer.apk"
+APK download can be found here: https://drive.google.com/file/d/1Jz8x0H-Tw97qR01dRoblmTPtr9nJCo4v/view?usp=sharing
+It will appear in the Android Emulator (or phone) as "CSCE546_Project"

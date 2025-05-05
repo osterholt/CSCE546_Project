@@ -8,12 +8,24 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,10 +38,15 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
@@ -52,6 +69,9 @@ fun MainScreen() {
 	val lifecycleOwner = LocalLifecycleOwner.current
 	val previewView = remember { PreviewView(context) }
 
+	val imageCapture = remember { ImageCapture.Builder().build() }
+
+	val appBlue = Color.hsl(219f,0.65f,0.36f)
 	// val recognizer // TODO: make this recognize facts
 
 	// Check Camera Permissions
@@ -115,7 +135,6 @@ fun MainScreen() {
 			viewModel.setEnableBackgroundCamera(!(showAdd || showEdit))
 		}
 		if (showAdd) {
-//			cameraProvider.unbindAll()
 			Popup (
 				onDismissRequest = { viewModel.closePopup() },
 				properties = PopupProperties(
@@ -128,7 +147,6 @@ fun MainScreen() {
 			}
 		}
 		else if (showEdit) {
-//			cameraProvider.unbindAll()
 			Popup (
 				onDismissRequest = { viewModel.closePopup() },
 				properties = PopupProperties(
@@ -143,13 +161,16 @@ fun MainScreen() {
 
 		// The rest of the main screen
 		Column(
-			modifier = Modifier.fillMaxHeight()
+			modifier = Modifier.fillMaxSize()
 		) {
 			// Camera preview
 			Box(
 				modifier = Modifier
 					.fillMaxWidth()
-					.fillMaxHeight(0.5f)  // TODO figure out how to clip camera preview
+					.weight(1f)
+					.padding(start = 8.dp, top = 24.dp, end = 8.dp, bottom = 10.dp)
+					.clip(RoundedCornerShape(16.dp))
+					.clipToBounds()
 			) {
 				if (cameraPermissionState.status.isGranted && enableCamera && imageCapture != null) {
 //					 Box Representing Image Preview
@@ -177,24 +198,29 @@ fun MainScreen() {
 						}
 					}
 
-					// Debug to show faces
-					Text(
-						text = "Number of faces: ${faces.size}",
-						modifier = Modifier
-							.align(Alignment.BottomCenter)
-							.background(Color.Black.copy(alpha = 0.5f)),
-						color = Color.White
-					)
-
 					// This is the name of the face detected
-					Box(modifier = Modifier.align(Alignment.TopCenter)) {
+					Box(
+						modifier = Modifier
+							.align(Alignment.TopCenter)
+							.padding(top = 16.dp)
+							.background(color = Color.DarkGray, shape = RoundedCornerShape(8.dp))
+							.border(width = 2.dp, color = Color.Black,
+								shape = RoundedCornerShape(8.dp))
+					) {
 						Text(
 							text = namePrediction?.label ?: defaultName,
 							fontSize = 20.sp,
-							textAlign = TextAlign.Center
+							textAlign = TextAlign.Center,
+							color = Color.White,
+							modifier = Modifier.padding(8.dp)
 						)
 					}
 				} else { //TODO: Needs testing
+					Box (
+						modifier = Modifier
+							.fillMaxSize()
+							.background(color = Color.Black)
+					)
 					LaunchedEffect(Unit) {
 						cameraPermissionState.launchPermissionRequest()
 					}
@@ -203,28 +229,81 @@ fun MainScreen() {
 
 			// Image list
 			// TODO should not be a column
-			Column(
-				modifier = Modifier.fillMaxWidth().fillMaxHeight().background(color = Color.Red)
-			) {
-				Button(
-					onClick = {
-						viewModel.openAddPopup()
+			Box(modifier = Modifier
+				.fillMaxWidth()
+				.weight(1f)
+				.padding(horizontal = 8.dp)
+				.clipToBounds()) {
+
+				Column {
+					pictures.forEach { picture ->
+						Row(modifier = Modifier
+							.clickable { viewModel.openEditPopup(picture) }
+							.padding(vertical = 4.dp)
+							.fillMaxWidth()
+							.clip(RoundedCornerShape(12.dp)) // Rounded corners
+							.border(2.dp, color = appBlue, RoundedCornerShape(12.dp)) // Outline border
+							.padding(8.dp), // Inner padding
+							verticalAlignment = Alignment.CenterVertically
+						) {
+							if(picture.faceData != null) {
+								Image(
+									bitmap = cropToSquare(picture.faceData!!).asImageBitmap(),
+									contentDescription = "Face",
+									modifier = Modifier
+										.size(64.dp)
+										.clip(RoundedCornerShape(8.dp))
+								)
+							}
+							Spacer(modifier = Modifier.width(12.dp))
+							Text(
+								text = "Name=${picture.name ?: "NULL"} | Average Score=${String.format("%.3f", picture.mlFace.average()).toFloat()}"
+							)
+						}
 					}
-				) {
-					Text("Test add popup")
 				}
 
-				pictures.forEach { picture ->
-					Button(
-						onClick = {
-							viewModel.openEditPopup(picture)
-						}
-					) {
-						Text(
-							text = ("ID=" + picture.id + " | NAME=" + (picture.name ?: "NULL"))
-						)
-					}
+				FloatingActionButton(
+					onClick = { viewModel.openAddPopup() },
+					containerColor = appBlue,
+					contentColor = Color.White,
+					modifier = Modifier
+						.align(Alignment.BottomEnd)
+						.padding(16.dp)
+				) {
+					Icon(
+						imageVector = Icons.Default.Add,
+						contentDescription = "Add"
+					)
 				}
+			}
+		}
+
+		// Popups, shown conditionally
+		if (showAdd) {
+			Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)))
+			Popup (
+				onDismissRequest = { viewModel.closePopup() },
+				properties = PopupProperties(
+					focusable = true,
+					dismissOnClickOutside = true
+				),
+				alignment = Alignment.Center
+			) {
+				AddPopup(viewModel, cameraController, lifecycleOwner) { viewModel.closePopup() }
+			}
+		}
+		else if (showEdit) {
+			Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)))
+			Popup (
+				onDismissRequest = { viewModel.closePopup() },
+				properties = PopupProperties(
+					focusable = true,
+					dismissOnClickOutside = false
+				),
+				alignment = Alignment.Center
+			) {
+				EditPopup(viewModel) { viewModel.closePopup() }
 			}
 		}
 	}
@@ -236,4 +315,11 @@ fun rotateBitmap(source: Bitmap, angle: Float): Bitmap {
 	return Bitmap.createBitmap(
 		source, 0, 0, source.width, source.height, matrix, true
 	)
+}
+
+fun cropToSquare(bitmap: Bitmap): Bitmap {
+	val dimension = minOf(bitmap.width, bitmap.height)
+	val xOffset = (bitmap.width - dimension) / 2
+	val yOffset = (bitmap.height - dimension) / 2
+	return Bitmap.createBitmap(bitmap, xOffset, yOffset, dimension, dimension)
 }

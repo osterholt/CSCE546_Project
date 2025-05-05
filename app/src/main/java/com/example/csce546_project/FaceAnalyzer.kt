@@ -30,7 +30,7 @@ import kotlin.math.sqrt
 
 class FaceAnalyzer(private var model: FaceNetModel,
 				   private var viewModel: PictureViewModel,
-				   private val onFacesDetected: (List<Face>, Prediction) -> Unit) : ImageAnalysis.Analyzer {
+				   private val onFacesDetected: (List<Face>, Prediction, Bitmap?) -> Unit) : ImageAnalysis.Analyzer {
 
 	private val pictures = viewModel.pictures
    	private val executor = Executors.newCachedThreadPool()
@@ -160,7 +160,7 @@ class FaceAnalyzer(private var model: FaceNetModel,
 			withContext(Dispatchers.Main) {
 				val firstPrediction = predictions.firstOrNull()
 				if(firstPrediction != null) {
-					onFacesDetected(faces, firstPrediction)
+					onFacesDetected(faces, firstPrediction, cameraFrameBitmap)
 				}
 				Log.d("FaceAnalyzer - Run Model", "Is Processing: False from Clean Exit")
 				isProcessing = false

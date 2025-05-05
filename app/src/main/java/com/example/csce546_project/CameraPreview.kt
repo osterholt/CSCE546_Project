@@ -1,5 +1,6 @@
 package com.example.csce546_project
 
+import android.graphics.Bitmap
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
@@ -47,12 +48,14 @@ private fun bindPreview(
 @Composable
 fun CameraPreview(
 	previewView: PreviewView,
-	imageCapture: ImageCapture,
+	imageCapture: ImageCapture?,
 	lifecycleOwner: LifecycleOwner,
 	model: FaceNetModel,
 	viewModel: PictureViewModel,
-	onFacesDetected: (List<Face>, Prediction) -> Unit
+	onFacesDetected: (List<Face>, Prediction, Bitmap?) -> Unit
 ) {
+	if(imageCapture == null)
+		return
 	val context = LocalContext.current
 	val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
 
@@ -62,8 +65,8 @@ fun CameraPreview(
 			.build().also {
 				it.setAnalyzer(
 					ContextCompat.getMainExecutor(context),
-					FaceAnalyzer(model, viewModel) { faces, prediction ->
-						onFacesDetected(faces, prediction)
+					FaceAnalyzer(model, viewModel) { faces, prediction, bitmap ->
+						onFacesDetected(faces, prediction, bitmap)
 					}
 				)
 			}

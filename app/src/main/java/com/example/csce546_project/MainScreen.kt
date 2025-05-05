@@ -35,10 +35,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
@@ -68,7 +68,6 @@ fun MainScreen() {
 	val context = LocalContext.current
 	val lifecycleOwner = LocalLifecycleOwner.current
 	val previewView = remember { PreviewView(context) }
-	val imageCapture = remember { ImageCapture.Builder().build() }
 
 	val appBlue = Color.hsl(219f,0.65f,0.36f)
 	// val recognizer // TODO: make this recognize facts
@@ -91,6 +90,28 @@ fun MainScreen() {
 	val showEdit by viewModel.showEditPopup.collectAsState()
 	val enableCamera by viewModel.enableBackgroundCamera.collectAsState()
 
+	val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+	val cameraProvider by rememberUpdatedState(cameraProviderFuture.get()) // NOT ideal
+	var cameraBound by remember { mutableStateOf(false) }
+
+	LaunchedEffect(enableCamera, cameraPermissionState.status) {
+		if (enableCamera && cameraPermissionState.status.isGranted && !cameraBound) {
+			try {
+				cameraProvider.unbindAll()
+				cameraController.bindToLifecycle(lifecycleOwner)
+				cameraBound = true
+			} catch (e: Exception) {
+				e.printStackTrace()
+			}
+		} else if ((!enableCamera || !cameraPermissionState.status.isGranted) && cameraBound) {
+			cameraProvider.unbindAll()
+			cameraBound = false
+		}
+	}
+	val imageCapture = remember(enableCamera) {
+		if (enableCamera) ImageCapture.Builder().build() else null
+	}
+
 	// Cam's AI Boxes
 	var faces by remember { mutableStateOf(emptyList<Face>()) }
 	var imageCaptured by remember { mutableStateOf(false) }
@@ -99,14 +120,44 @@ fun MainScreen() {
 	val modelInfo = Models.FACENET
 	val useGpu = true
 	val faceNetModel = FaceNetModel(context, modelInfo , useGpu )
+	var rotatedBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
 
-	val cameraProvider = ProcessCameraProvider.getInstance(context).get()
 
 	// START MAIN SCREEN
 	Box (
 		modifier = Modifier.fillMaxHeight()
 	) {
+		// Popups, shown conditionally
+		LaunchedEffect(showAdd, showEdit) {
+			viewModel.setEnableBackgroundCamera(!(showAdd || showEdit))
+		}
+		if (showAdd) {
+			Popup (
+				onDismissRequest = { viewModel.closePopup() },
+				properties = PopupProperties(
+					focusable = true,
+					dismissOnClickOutside = true
+				),
+				alignment = Alignment.Center
+			) {
+				AddPopup(viewModel, cameraController, lifecycleOwner) { viewModel.closePopup() }
+			}
+		}
+		else if (showEdit) {
+			Popup (
+				onDismissRequest = { viewModel.closePopup() },
+				properties = PopupProperties(
+					focusable = true,
+					dismissOnClickOutside = true
+				),
+				alignment = Alignment.Center
+			) {
+				EditPopup(viewModel) { viewModel.closePopup() }
+			}
+		}
+
+		// The rest of the main screen
 		Column(
 			modifier = Modifier.fillMaxSize()
 		) {
@@ -119,9 +170,8 @@ fun MainScreen() {
 					.clip(RoundedCornerShape(16.dp))
 					.clipToBounds()
 			) {
-				// TODO even having cameraPermissionState uncommented breaks taking picture
-				if (cameraPermissionState.status.isGranted && enableCamera) {
-					// Box Representing Image Preview
+				if (cameraPermissionState.status.isGranted && enableCamera && imageCapture != null) {
+//					 Box Representing Image Preview
 					Box(modifier = Modifier) {
 						CameraPreview(
 							previewView = previewView,
@@ -129,23 +179,21 @@ fun MainScreen() {
 							lifecycleOwner = lifecycleOwner,
 							model = faceNetModel,
 							viewModel = viewModel,
-							onFacesDetected = { detectedFaces, prediction ->
+							onFacesDetected = { detectedFaces, prediction, bitmap ->
 								if (detectedFaces.isNotEmpty() && !imageCaptured) {
 									faces = detectedFaces
 									namePrediction = prediction
+									rotatedBitmap = bitmap
 								}
 							}
 						)
-					}
-
-					// Display face details and such
-					if(!faces.isEmpty()) {
-						FaceBoxOverlay(
-							faces = faces.map { face -> face.boundingBox },
-							imageWidth = detectedBitmap?.width ?: 0,
-							imageHeight = detectedBitmap?.height ?: 0,
-							modifier = Modifier.fillMaxSize()
-						)
+						if(!faces.isEmpty()) {
+							FaceBoxOverlay(
+								faces = faces.map { it.boundingBox },
+								rotatedBitmap = rotatedBitmap,
+								modifier = Modifier.matchParentSize()
+							)
+						}
 					}
 
 					// This is the name of the face detected

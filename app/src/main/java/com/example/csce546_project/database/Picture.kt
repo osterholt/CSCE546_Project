@@ -24,6 +24,7 @@ data class PictureEntry (
 class PictureModel(val id: Int?, var name: String?, var uri: Uri?) {
 
     var faceData: Bitmap? = null  // TODO make face data
+    var mlFace: FloatArray = floatArrayOf()
 
     init {
         // TODO below is example code to open file and turn it into a bitmap -- rework it

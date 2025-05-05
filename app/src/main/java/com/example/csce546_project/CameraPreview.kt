@@ -1,6 +1,5 @@
 package com.example.csce546_project
 
-import android.graphics.Rect
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
@@ -15,6 +14,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.example.csce546_project.model.FaceNetModel
+import com.example.csce546_project.model.Prediction
+import com.google.mlkit.vision.face.Face
 
 private fun bindPreview(
 	cameraProvider: ProcessCameraProvider,
@@ -28,7 +30,7 @@ private fun bindPreview(
 	}
 
 	val cameraSelector = CameraSelector.Builder()
-		.requireLensFacing(CameraSelector.LENS_FACING_BACK)
+		.requireLensFacing(CameraSelector.LENS_FACING_FRONT) //SWITCHED TO SELFIE
 		.build()
 
 	cameraProvider.unbindAll()
@@ -47,7 +49,9 @@ fun CameraPreview(
 	previewView: PreviewView,
 	imageCapture: ImageCapture,
 	lifecycleOwner: LifecycleOwner,
-	onFacesDetected: (List<Rect>, Int, Int) -> Unit
+	model: FaceNetModel,
+	viewModel: PictureViewModel,
+	onFacesDetected: (List<Face>, Prediction) -> Unit
 ) {
 	val context = LocalContext.current
 	val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
@@ -58,8 +62,8 @@ fun CameraPreview(
 			.build().also {
 				it.setAnalyzer(
 					ContextCompat.getMainExecutor(context),
-					FaceAnalyzer { faces, width, height ->
-						onFacesDetected(faces, width, height)
+					FaceAnalyzer(model, viewModel) { faces, prediction ->
+						onFacesDetected(faces, prediction)
 					}
 				)
 			}

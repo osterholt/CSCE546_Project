@@ -115,7 +115,7 @@ fun MainScreen() {
 				modifier = Modifier
 					.fillMaxWidth()
 					.weight(1f)
-					.padding(horizontal = 8.dp, vertical = 10.dp)
+					.padding(start = 8.dp, top = 24.dp, end = 8.dp, bottom = 10.dp)
 					.clip(RoundedCornerShape(16.dp))
 					.clipToBounds()
 			) {
@@ -148,21 +148,21 @@ fun MainScreen() {
 						)
 					}
 
-					// Debug to show faces
-					Text(
-						text = "Number of faces: ${faces.size}",
-						modifier = Modifier
-							.align(Alignment.BottomCenter)
-							.background(Color.Black.copy(alpha = 0.5f)),
-						color = Color.White
-					)
-
 					// This is the name of the face detected
-					Box(modifier = Modifier.align(Alignment.TopCenter)) {
+					Box(
+						modifier = Modifier
+							.align(Alignment.TopCenter)
+							.padding(top = 16.dp)
+							.background(color = Color.DarkGray, shape = RoundedCornerShape(8.dp))
+							.border(width = 2.dp, color = Color.Black,
+								shape = RoundedCornerShape(8.dp))
+					) {
 						Text(
 							text = namePrediction?.label ?: defaultName,
 							fontSize = 20.sp,
-							textAlign = TextAlign.Center
+							textAlign = TextAlign.Center,
+							color = Color.White,
+							modifier = Modifier.padding(8.dp)
 						)
 					}
 				} else { //TODO: Needs testing
@@ -226,7 +226,6 @@ fun MainScreen() {
 						contentDescription = "Add"
 					)
 				}
-				Text("Pictures size = ${viewModel.pictures.value?.size}", modifier = Modifier.align(Alignment.BottomCenter))
 			}
 		}
 

@@ -12,7 +12,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -103,6 +102,7 @@ fun MainScreen() {
 	val modelInfo = Models.FACENET
 	val useGpu = true
 	val faceNetModel = FaceNetModel(context, modelInfo , useGpu )
+	var rotatedBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
 
 
@@ -160,23 +160,21 @@ fun MainScreen() {
 							lifecycleOwner = lifecycleOwner,
 							model = faceNetModel,
 							viewModel = viewModel,
-							onFacesDetected = { detectedFaces, prediction ->
+							onFacesDetected = { detectedFaces, prediction, bitmap ->
 								if (detectedFaces.isNotEmpty() && !imageCaptured) {
 									faces = detectedFaces
 									namePrediction = prediction
+									rotatedBitmap = bitmap
 								}
 							}
 						)
-					}
-
-					// Display face details and such
-					if(!faces.isEmpty()) {
-						FaceBoxOverlay(
-							faces = faces.map { face -> face.boundingBox },
-							imageWidth = detectedBitmap?.width ?: 0,
-							imageHeight = detectedBitmap?.height ?: 0,
-							modifier = Modifier.fillMaxSize()
-						)
+						if(!faces.isEmpty()) {
+							FaceBoxOverlay(
+								faces = faces.map { it.boundingBox },
+								rotatedBitmap = rotatedBitmap,
+								modifier = Modifier.matchParentSize()
+							)
+						}
 					}
 
 					// Debug to show faces

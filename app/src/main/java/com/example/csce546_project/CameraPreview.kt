@@ -47,12 +47,14 @@ private fun bindPreview(
 @Composable
 fun CameraPreview(
 	previewView: PreviewView,
-	imageCapture: ImageCapture,
+	imageCapture: ImageCapture?,
 	lifecycleOwner: LifecycleOwner,
 	model: FaceNetModel,
 	viewModel: PictureViewModel,
 	onFacesDetected: (List<Face>, Prediction) -> Unit
 ) {
+	if(imageCapture == null)
+		return
 	val context = LocalContext.current
 	val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
 

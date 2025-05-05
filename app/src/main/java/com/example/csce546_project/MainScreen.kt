@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,7 +36,6 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.csce546_project.database.PictureEntry
 import com.example.csce546_project.model.FaceNetModel
 import com.example.csce546_project.model.Models
 import com.example.csce546_project.model.Prediction
@@ -52,7 +52,7 @@ fun MainScreen() {
 	val context = LocalContext.current
 	val lifecycleOwner = LocalLifecycleOwner.current
 	val previewView = remember { PreviewView(context) }
-	val imageCapture = remember { ImageCapture.Builder().build() }
+
 	// val recognizer // TODO: make this recognize facts
 
 	// Check Camera Permissions
@@ -73,6 +73,28 @@ fun MainScreen() {
 	val showEdit by viewModel.showEditPopup.collectAsState()
 	val enableCamera by viewModel.enableBackgroundCamera.collectAsState()
 
+	val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+	val cameraProvider by rememberUpdatedState(cameraProviderFuture.get()) // NOT ideal
+	var cameraBound by remember { mutableStateOf(false) }
+
+	LaunchedEffect(enableCamera, cameraPermissionState.status) {
+		if (enableCamera && cameraPermissionState.status.isGranted && !cameraBound) {
+			try {
+				cameraProvider.unbindAll()
+				cameraController.bindToLifecycle(lifecycleOwner)
+				cameraBound = true
+			} catch (e: Exception) {
+				e.printStackTrace()
+			}
+		} else if ((!enableCamera || !cameraPermissionState.status.isGranted) && cameraBound) {
+			cameraProvider.unbindAll()
+			cameraBound = false
+		}
+	}
+	val imageCapture = remember(enableCamera) {
+		if (enableCamera) ImageCapture.Builder().build() else null
+	}
+
 	// Cam's AI Boxes
 	var faces by remember { mutableStateOf(emptyList<Face>()) }
 	var imageCaptured by remember { mutableStateOf(false) }
@@ -83,14 +105,17 @@ fun MainScreen() {
 	val faceNetModel = FaceNetModel(context, modelInfo , useGpu )
 
 
-	val cameraProvider = ProcessCameraProvider.getInstance(context).get()
 
 	// START MAIN SCREEN
 	Box (
 		modifier = Modifier.fillMaxHeight()
 	) {
 		// Popups, shown conditionally
+		LaunchedEffect(showAdd, showEdit) {
+			viewModel.setEnableBackgroundCamera(!(showAdd || showEdit))
+		}
 		if (showAdd) {
+//			cameraProvider.unbindAll()
 			Popup (
 				onDismissRequest = { viewModel.closePopup() },
 				properties = PopupProperties(
@@ -103,6 +128,7 @@ fun MainScreen() {
 			}
 		}
 		else if (showEdit) {
+//			cameraProvider.unbindAll()
 			Popup (
 				onDismissRequest = { viewModel.closePopup() },
 				properties = PopupProperties(
@@ -125,8 +151,8 @@ fun MainScreen() {
 					.fillMaxWidth()
 					.fillMaxHeight(0.5f)  // TODO figure out how to clip camera preview
 			) {
-				if (cameraPermissionState.status.isGranted && enableCamera) {
-					// Box Representing Image Preview
+				if (cameraPermissionState.status.isGranted && enableCamera && imageCapture != null) {
+//					 Box Representing Image Preview
 					Box(modifier = Modifier) {
 						CameraPreview(
 							previewView = previewView,

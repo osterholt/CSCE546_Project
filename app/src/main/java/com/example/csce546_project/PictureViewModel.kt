@@ -4,13 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.Preview
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.CameraController
 import androidx.camera.view.LifecycleCameraController
-import androidx.camera.view.PreviewView
-import androidx.compose.runtime.remember
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
@@ -23,9 +17,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class PictureViewModel(application: Application) : AndroidViewModel(application) {
     private val pictureRepository: PictureRepository
@@ -127,5 +118,9 @@ class PictureViewModel(application: Application) : AndroidViewModel(application)
     fun enableBackgroundCamera(cameraController: LifecycleCameraController, lifecycleOwner: LifecycleOwner) {
         cameraController.bindToLifecycle(lifecycleOwner)
         this._enableBackgroundCamera.value = true
+    }
+
+    fun setEnableBackgroundCamera(enabled: Boolean) {
+        _enableBackgroundCamera.value = enabled
     }
 }

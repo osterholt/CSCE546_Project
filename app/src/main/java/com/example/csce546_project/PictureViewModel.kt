@@ -3,6 +3,7 @@ package com.example.csce546_project
 import android.app.Application
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -21,7 +22,6 @@ import com.example.csce546_project.database.PictureRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import org.tensorflow.lite.TensorFlowLite.init
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -68,13 +68,14 @@ class PictureViewModel(application: Application) : AndroidViewModel(application)
 
     // Used for caching images taken with the camera -- NOT the permanent URI
     fun createImageFileInCache(context: Context): File {
-        val timestamp = SimpleDateFormat("yyyy_MM_dd_HH:mm:ss", Locale.US).format(Date())
-        val imageFileName = "temp_${timestamp}"
+        val imageFileName = "temp_${System.currentTimeMillis()}"
         val image = File.createTempFile(
             imageFileName,
             ".jpg",
             context.externalCacheDir
         )
+
+        Log.d("create image cache", context.externalCacheDir!!.path)
 
         return image
     }

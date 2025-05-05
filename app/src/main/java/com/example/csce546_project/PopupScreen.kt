@@ -1,5 +1,6 @@
 package com.example.csce546_project
 
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -167,11 +168,15 @@ fun TakePhotoButton(
         file
     )
 
+    Log.d("TakePhoto", "File exists before launch: ${file.exists()}, path: ${file.path}")
+
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture(),
         onResult = {
             viewModel.setPictureFilePath(uri)
-            // viewModel.enableBackgroundCamera(cameraController, lifecycleOwner)
+            Log.w("CAMERA", "PICTURE SUCCESSFULLY SAVED")
+            viewModel.enableBackgroundCamera(cameraController, lifecycleOwner)
+            Log.d("TakePhoto", "File exists: ${file.absolutePath}, size: ${file.length()} bytes")
         }
     )
 

@@ -83,6 +83,8 @@ fun MainScreen() {
 	val faceNetModel = FaceNetModel(context, modelInfo , useGpu )
 
 
+	val cameraProvider = ProcessCameraProvider.getInstance(context).get()
+
 	// START MAIN SCREEN
 	Box (
 		modifier = Modifier.fillMaxHeight()

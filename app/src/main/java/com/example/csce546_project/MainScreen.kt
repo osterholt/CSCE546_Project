@@ -3,7 +3,10 @@ package com.example.csce546_project
 import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.Matrix
+import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -56,6 +59,11 @@ fun MainScreen() {
 	val cameraPermissionState = rememberPermissionState(
 		Manifest.permission.CAMERA
 	)
+	val cameraController = remember {
+		LifecycleCameraController(context).apply {
+			setCameraSelector(CameraSelector.DEFAULT_FRONT_CAMERA)
+		}
+	}
 
 	// PictureViewModel info -- keeps track of pictures and popup state
 	val viewModel: PictureViewModel = viewModel() // View model is singleton
@@ -63,6 +71,7 @@ fun MainScreen() {
 	val currentPicture by viewModel.currentPicture.collectAsState()  // TODO re-implement
 	val showAdd by viewModel.showAddPopup.collectAsState()
 	val showEdit by viewModel.showEditPopup.collectAsState()
+	val enableCamera by viewModel.enableBackgroundCamera.collectAsState()
 
 	// Cam's AI Boxes
 	var faces by remember { mutableStateOf(emptyList<Face>()) }
@@ -74,7 +83,7 @@ fun MainScreen() {
 	val faceNetModel = FaceNetModel(context, modelInfo , useGpu )
 
 
-	val TEST_PICTURE = PictureEntry(0, "Example", "exampleFilePath")  // TODO
+	val cameraProvider = ProcessCameraProvider.getInstance(context).get()
 
 	// START MAIN SCREEN
 	Box (
@@ -90,7 +99,7 @@ fun MainScreen() {
 				),
 				alignment = Alignment.Center
 			) {
-				AddPopup(viewModel, { viewModel.closePopup() })
+				AddPopup(viewModel, cameraController, lifecycleOwner) { viewModel.closePopup() }
 			}
 		}
 		else if (showEdit) {
@@ -102,7 +111,7 @@ fun MainScreen() {
 				),
 				alignment = Alignment.Center
 			) {
-				EditPopup(viewModel, { viewModel.closePopup() })
+				EditPopup(viewModel) { viewModel.closePopup() }
 			}
 		}
 
@@ -116,10 +125,9 @@ fun MainScreen() {
 					.fillMaxWidth()
 					.fillMaxHeight(0.5f)  // TODO figure out how to clip camera preview
 			) {
-				if (cameraPermissionState.status.isGranted) {
+				if (cameraPermissionState.status.isGranted && enableCamera) {
 					// Box Representing Image Preview
 					Box(modifier = Modifier) {
-						// TODO: Switch to selfie camera or have toggle.
 						CameraPreview(
 							previewView = previewView,
 							imageCapture = imageCapture,
@@ -175,14 +183,18 @@ fun MainScreen() {
 				modifier = Modifier.fillMaxWidth().fillMaxHeight().background(color = Color.Red)
 			) {
 				Button(
-					onClick = { viewModel.openAddPopup() },
+					onClick = {
+						viewModel.openAddPopup()
+					}
 				) {
 					Text("Test add popup")
 				}
 
 				pictures.forEach { picture ->
 					Button(
-						onClick = { viewModel.openEditPopup(picture) }
+						onClick = {
+							viewModel.openEditPopup(picture)
+						}
 					) {
 						Text(
 							text = ("ID=" + picture.id + " | NAME=" + (picture.name ?: "NULL"))

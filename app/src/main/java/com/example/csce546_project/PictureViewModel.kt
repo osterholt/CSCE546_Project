@@ -3,7 +3,16 @@ package com.example.csce546_project
 import android.app.Application
 import android.content.Context
 import android.net.Uri
+import android.util.Log
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.CameraController
+import androidx.camera.view.LifecycleCameraController
+import androidx.camera.view.PreviewView
+import androidx.compose.runtime.remember
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
@@ -31,6 +40,9 @@ class PictureViewModel(application: Application) : AndroidViewModel(application)
     private val _showEditPopup = MutableStateFlow(false)
     val showEditPopup: StateFlow<Boolean> = _showEditPopup
 
+    private val _enableBackgroundCamera = MutableStateFlow(true)
+    val enableBackgroundCamera: StateFlow<Boolean> = _enableBackgroundCamera
+
 
     init {
         val pictureDAO = PictureDatabase.getDatabase(application).pictureDAO()
@@ -56,13 +68,14 @@ class PictureViewModel(application: Application) : AndroidViewModel(application)
 
     // Used for caching images taken with the camera -- NOT the permanent URI
     fun createImageFileInCache(context: Context): File {
-        val timestamp = SimpleDateFormat("yyyy_MM_dd_HH:mm:ss", Locale.US).format(Date())
-        val imageFileName = "temp_${timestamp}"
+        val imageFileName = "temp_${System.currentTimeMillis()}"
         val image = File.createTempFile(
             imageFileName,
             ".jpg",
             context.externalCacheDir
         )
+
+        Log.d("create image cache", context.externalCacheDir!!.path)
 
         return image
     }
@@ -104,5 +117,15 @@ class PictureViewModel(application: Application) : AndroidViewModel(application)
         this._showAddPopup.value = false
         this._showEditPopup.value = false
         this._currentPicture.value = null
+    }
+
+    fun disableBackgroundCamera(cameraController: LifecycleCameraController) {
+        this._enableBackgroundCamera.value = false
+        cameraController.unbind()
+    }
+
+    fun enableBackgroundCamera(cameraController: LifecycleCameraController, lifecycleOwner: LifecycleOwner) {
+        cameraController.bindToLifecycle(lifecycleOwner)
+        this._enableBackgroundCamera.value = true
     }
 }

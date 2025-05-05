@@ -3,6 +3,8 @@ package com.example.csce546_project
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.view.CameraController
+import androidx.camera.view.LifecycleCameraController
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,11 +27,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.core.content.FileProvider
+import androidx.lifecycle.LifecycleOwner
 import coil.compose.AsyncImage
 import java.util.Objects
 
 @Composable
-fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
+fun AddPopup(
+    viewModel: PictureViewModel,
+    cameraController: LifecycleCameraController,
+    lifecycleOwner: LifecycleOwner,
+    onClose: () -> Unit
+) {
     val context = LocalContext.current
     val currentPicture = viewModel.currentPicture.collectAsState()
 
@@ -42,7 +50,7 @@ fun AddPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         if (currentPicture.value?.uri == null) {
-            TakePhotoButton(viewModel)
+            TakePhotoButton(viewModel, cameraController, lifecycleOwner)
 
             Text(text = "or")
 
@@ -146,8 +154,11 @@ fun EditPopup(viewModel: PictureViewModel, onClose: () -> Unit) {
 }
 
 @Composable
-fun TakePhotoButton(viewModel: PictureViewModel) {
-
+fun TakePhotoButton(
+    viewModel: PictureViewModel,
+    cameraController: LifecycleCameraController,
+    lifecycleOwner: LifecycleOwner
+) {
     val context = LocalContext.current
     val file = viewModel.createImageFileInCache(context)
     val uri = FileProvider.getUriForFile(
@@ -160,11 +171,15 @@ fun TakePhotoButton(viewModel: PictureViewModel) {
         contract = ActivityResultContracts.TakePicture(),
         onResult = {
             viewModel.setPictureFilePath(uri)
+            // viewModel.enableBackgroundCamera(cameraController, lifecycleOwner)
         }
     )
 
     Button(
-        onClick = { cameraLauncher.launch(uri) }
+        onClick = {
+            viewModel.disableBackgroundCamera(cameraController)
+            cameraLauncher.launch(uri)
+        }
     ) {
         Row{
             Icon(
@@ -190,8 +205,8 @@ fun PickPhotoButton(viewModel: PictureViewModel) {
 
     Button(
         onClick = { photoPickerLauncher.launch(
-            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-        ) }
+            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        }
     ) {
         Row{
             Icon(

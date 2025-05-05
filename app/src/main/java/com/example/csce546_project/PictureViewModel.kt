@@ -3,7 +3,15 @@ package com.example.csce546_project
 import android.app.Application
 import android.content.Context
 import android.net.Uri
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.CameraController
+import androidx.camera.view.LifecycleCameraController
+import androidx.camera.view.PreviewView
+import androidx.compose.runtime.remember
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
@@ -13,6 +21,7 @@ import com.example.csce546_project.database.PictureRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import org.tensorflow.lite.TensorFlowLite.init
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -30,6 +39,9 @@ class PictureViewModel(application: Application) : AndroidViewModel(application)
 
     private val _showEditPopup = MutableStateFlow(false)
     val showEditPopup: StateFlow<Boolean> = _showEditPopup
+
+    private val _enableBackgroundCamera = MutableStateFlow(true)
+    val enableBackgroundCamera: StateFlow<Boolean> = _enableBackgroundCamera
 
 
     init {
@@ -104,5 +116,15 @@ class PictureViewModel(application: Application) : AndroidViewModel(application)
         this._showAddPopup.value = false
         this._showEditPopup.value = false
         this._currentPicture.value = null
+    }
+
+    fun disableBackgroundCamera(cameraController: LifecycleCameraController) {
+        this._enableBackgroundCamera.value = false
+        cameraController.unbind()
+    }
+
+    fun enableBackgroundCamera(cameraController: LifecycleCameraController, lifecycleOwner: LifecycleOwner) {
+        cameraController.bindToLifecycle(lifecycleOwner)
+        this._enableBackgroundCamera.value = true
     }
 }

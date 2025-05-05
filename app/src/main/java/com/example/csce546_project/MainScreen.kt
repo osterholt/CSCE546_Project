@@ -227,7 +227,7 @@ fun MainScreen() {
 							}
 							Spacer(modifier = Modifier.width(12.dp))
 							Text(
-								text = "Name=${picture.name ?: "NULL"} | Average Score=${String.format("%.3f", picture.mlFace.average()).toFloat()}"
+								text = "Name=${picture.name ?: "NULL"}" // | Average Score=${String.format("%.3f", picture.mlFace.average()).toFloat()}"
 							)
 						}
 					}

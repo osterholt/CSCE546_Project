@@ -28,176 +28,236 @@ import java.util.concurrent.Executors
 import kotlin.math.pow
 import kotlin.math.sqrt
 
-class FaceAnalyzer(private var model: FaceNetModel,
-				   private var viewModel: PictureViewModel,
-				   private val onFacesDetected: (List<Face>, Prediction) -> Unit) : ImageAnalysis.Analyzer {
+class FaceAnalyzer(
+	private var model: FaceNetModel,
+	private var viewModel: PictureViewModel,
+	private val onFacesDetected: (List<Face>, Prediction) -> Unit
+) : ImageAnalysis.Analyzer {
 
 	private val pictures = viewModel.pictures
-   	private val executor = Executors.newCachedThreadPool()
+	private val executor = Executors.newSingleThreadExecutor() // Single thread for consistency
 	private var isProcessing = false
 
-	private var subject = FloatArray( model.embeddingDim )
-	private val nameScoreHashmap = HashMap<PictureModel,ArrayList<Float>>()
+	// Add debounce mechanism
+	private var lastProcessingTimeMs: Long = 0
+	private val MINIMUM_PROCESS_INTERVAL_MS = 500 // Process at most every 500ms
+
+	private var subject = FloatArray(model.embeddingDim)
+	private val nameScoreHashmap = HashMap<PictureModel, ArrayList<Float>>()
+
+	// Cache last prediction to reduce flickering
+	private var lastPrediction: Prediction? = null
+	private var consecutiveNoMatches = 0
+	private val MAX_NO_MATCHES = 5 // Number of frames before clearing last prediction
 
 	// Use any one of the two metrics, "cosine" or "l2"
-	private val metricToBeUsed = "l2"
+//	private val metricToBeUsed = "l2"
+	private val metricToBeUsed = "cosine"
 
 	private val detector = FaceDetection.getClient(
 		FaceDetectorOptions.Builder()
 			.setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
 			.setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+			.setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
+			.setMinFaceSize(0.15f) // Increase minimum face size to reduce distant false detections
 			.build()
 	)
 
 	@OptIn(ExperimentalGetImage::class)
 	override fun analyze(imageProxy: ImageProxy) {
-		if(isProcessing) {
+		val currentTimeMs = System.currentTimeMillis()
+
+		// Skip processing if not enough time has passed or already processing
+		if (isProcessing || (currentTimeMs - lastProcessingTimeMs < MINIMUM_PROCESS_INTERVAL_MS)) {
 			imageProxy.close()
 			return
-		} else {
-			isProcessing = true
-			Log.d("FaceAnalyzer - Analyze", "Is processing: True")
-			Log.d("FaceAnalyzer - Analyze", "Image proxy == ${imageProxy.image != null}")
-			Log.d("FaceAnalyzer - Analyze", "Image Proxy Format: ${imageProxy.format}, Width: ${imageProxy.width}, Height: ${imageProxy.height}")
+		}
+
+		lastProcessingTimeMs = currentTimeMs
+		isProcessing = true
+
+		try {
 			val mediaImage = imageProxy.image
 			if (mediaImage != null) {
-				val rotationDegrees = imageProxy.imageInfo.rotationDegrees
+				// Convert to bitmap IMMEDIATELY, before any async operations
 				val bitmap = toBitmap(mediaImage)
+				val rotationDegrees = imageProxy.imageInfo.rotationDegrees
 				val rotatedBitmap = rotateBitmap(bitmap, rotationDegrees.toFloat())
 
-				val inputImage = InputImage.fromBitmap(rotatedBitmap, 0)
+				// Process the image with ML Kit's face detection
+				val inputImage = InputImage.fromMediaImage(mediaImage, rotationDegrees)
+
 				detector.process(inputImage)
 					.addOnSuccessListener(executor) { faces ->
-						Log.d("FaceAnalyzer - Analyze", "Detector Process Image successful")
-						CoroutineScope(Dispatchers.Default).launch {
-							runModel(faces, rotatedBitmap)
+						if (faces.isNotEmpty()) {
+							// Now use the already-created bitmap that was made before any callbacks
+							CoroutineScope(Dispatchers.Default).launch {
+								runModel(faces, rotatedBitmap)
+							}
+						} else {
+							// No faces detected
+							handleNoFacesDetected()
 						}
 					}
 					.addOnFailureListener(executor) { e ->
+						Log.e("FaceAnalyzer", "Face detection failed", e)
 						isProcessing = false
-						Log.e("FaceAnalyzer - Analyze", "Is processing: False from Error")
-						e.printStackTrace()
 					}
 					.addOnCompleteListener {
 						imageProxy.close()
 					}
+			} else {
+				imageProxy.close()
+				isProcessing = false
+			}
+		} catch (e: Exception) {
+			Log.e("FaceAnalyzer", "Error in analyze", e)
+			imageProxy.close()
+			isProcessing = false
+		}
+	}
+
+	private fun handleNoFacesDetected() {
+		consecutiveNoMatches++
+		if (consecutiveNoMatches >= MAX_NO_MATCHES) {
+			// Reset last prediction after several frames with no faces
+			lastPrediction = null
+			CoroutineScope(Dispatchers.Main).launch {
+				onFacesDetected(emptyList(), Prediction(Rect(), "Unknown"))
+			}
+		} else if (lastPrediction != null) {
+			// Keep using last prediction for a few frames to reduce flickering
+			CoroutineScope(Dispatchers.Main).launch {
+				onFacesDetected(emptyList(), lastPrediction!!)
 			}
 		}
+		isProcessing = false
 	}
 
 	private suspend fun runModel(faces: List<Face>, cameraFrameBitmap: Bitmap) {
-		if(pictures.value!!.isEmpty()){
-			Log.d("FaceAnalyzer - Run Model", "No pictures, is processing is now false")
-			isProcessing = false
-			return
-		}
-		withContext(Dispatchers.Default) {
-			val predictions = ArrayList<Prediction>()
-			Log.d("FaceAnalyzer - Run Model", "Number of faces = " + faces.size)
-			for (face in faces) {
-				try {
-					val croppedBitmap = cropRectFromBitmap(cameraFrameBitmap, face.boundingBox)
-					subject = model.getFaceEmbedding(croppedBitmap)
-					Log.d("FaceAnalyzer - Run Model", "pictures.size = ${pictures.value!!.size}")
-
-					for (i in 0 until pictures.value!!.size) {
-						val picture = pictures.value!![i]
-						if(picture.faceData == null)
-							continue // skip this picture
-						if(picture.mlFace.isEmpty()) {
-							pictures.value!![i].mlFace = model.getFaceEmbedding(picture.faceData!!)
-						}
-						if (nameScoreHashmap[picture] == null) {
-							val p = ArrayList<Float>()
-							if (metricToBeUsed == "cosine")
-								p.add(cosineSimilarity(subject, picture.mlFace))
-							else
-								p.add(L2Norm(subject, picture.mlFace))
-							nameScoreHashmap[picture] = p
-						} else {
-							if (metricToBeUsed == "cosine")
-								nameScoreHashmap[picture]?.add(cosineSimilarity(subject, picture.mlFace))
-							else
-								nameScoreHashmap[picture]?.add(L2Norm(subject, picture.mlFace))
-						}
-					}
-
-					val avgScores = nameScoreHashmap.values.map { scores -> scores.toFloatArray().average() }
-					val names = nameScoreHashmap.keys.map { picture -> picture.name }
-
-					// DEBUG: Log all names and their average scores
-					for ((index, name) in names.withIndex()) {
-						val score = avgScores[index]
-						Log.d("FaceAnalyzer - Run Model", "Name: $name, Score: $score")
-					}
-
-
-					val bestScoreName: String = if (metricToBeUsed == "cosine") {
-						val max = avgScores.maxOrNull()
-						if (max != null && max > model.model.cosineThreshold) {
-							names[avgScores.indexOf(max)] ?: "Unknown"
-						} else {
-							"Unknown"
-						}
-					} else {
-						val min = avgScores.minOrNull()
-						if (min != null && min < model.model.l2Threshold) {
-							"Unknown"
-						} else {
-							names[avgScores.indexOf(min!!)] ?: "Unknown"
-						}
-					}
-
-					Log.d("FaceAnalyzer - Run Model", "bestScoreName is \"$bestScoreName\"")
-					predictions.add(Prediction(face.boundingBox, bestScoreName))
-					nameScoreHashmap.clear()
-
-				} catch (e: Exception) {
-					Log.e("FaceAnalyzer - Run Model", "Error during model execution: ${e.message}")
-					e.printStackTrace()
-				}
-			}
+		if (pictures.value.isNullOrEmpty()) {
 			withContext(Dispatchers.Main) {
-				val firstPrediction = predictions.firstOrNull()
-				if(firstPrediction != null) {
-					onFacesDetected(faces, firstPrediction)
-				}
-				Log.d("FaceAnalyzer - Run Model", "Is Processing: False from Clean Exit")
 				isProcessing = false
 			}
+			return
+		}
+
+		withContext(Dispatchers.Default) {
+			try {
+				val predictions = ArrayList<Prediction>()
+				for (face in faces) {
+					try {
+						val croppedBitmap = cropRectFromBitmap(cameraFrameBitmap, face.boundingBox)
+						subject = model.getFaceEmbedding(croppedBitmap)
+
+						pictures.value?.let { picturesList ->
+							for (picture in picturesList) {
+								if (picture.faceData == null) continue
+
+								// Initialize face embedding if needed
+								if (picture.mlFace.isEmpty()) {
+									picture.mlFace = model.getFaceEmbedding(picture.faceData!!)
+								}
+
+								// Calculate similarity score
+								val scores = nameScoreHashmap.getOrPut(picture) { ArrayList() }
+								val score = if (metricToBeUsed == "cosine") {
+									cosineSimilarity(subject, picture.mlFace)
+								} else {
+									L2Norm(subject, picture.mlFace)
+								}
+								scores.add(score)
+							}
+						}
+
+						// Find best match
+						var bestScoreName = "Unknown"
+						if (nameScoreHashmap.isNotEmpty()) {
+							val avgScores = nameScoreHashmap.map { entry ->
+								Log.d("Face Analyzer - Run Model", "Name = ${entry.key.name} Average = ${entry.value.average()}")
+								Pair(entry.key.name, entry.value.average())
+							}
+
+							bestScoreName = if (metricToBeUsed == "cosine") {
+								val maxEntry = avgScores.maxByOrNull { it.second }
+								model.model.cosineThreshold = 0.1f
+								if (maxEntry != null && maxEntry.second > model.model.cosineThreshold) {
+									maxEntry.first ?: "Unknown"
+								} else "Unknown"
+							} else {
+								val minEntry = avgScores.minByOrNull { it.second }
+								if (minEntry != null && minEntry.second < model.model.l2Threshold) {
+									minEntry.first ?: "Unknown"
+								} else "Unknown"
+							}
+						}
+
+						Log.d("Face Analyzer - Run Model", "best score name = ${bestScoreName}")
+						val newPrediction = Prediction(face.boundingBox, bestScoreName)
+						predictions.add(newPrediction)
+
+						// Reset no matches counter since we found a face
+						consecutiveNoMatches = 0
+
+						// Update last prediction
+						lastPrediction = newPrediction
+
+						// Clear hashmap for next analysis
+						nameScoreHashmap.clear()
+					} catch (e: Exception) {
+						Log.e("FaceAnalyzer", "Error processing face: ${e.message}")
+					}
+				}
+
+				withContext(Dispatchers.Main) {
+					val firstPrediction = predictions.firstOrNull() ?: lastPrediction
+					if (firstPrediction != null) {
+						onFacesDetected(faces, firstPrediction)
+					}
+					isProcessing = false
+				}
+			} catch (e: Exception) {
+				Log.e("FaceAnalyzer", "Error in runModel", e)
+				withContext(Dispatchers.Main) {
+					isProcessing = false
+				}
+			}
 		}
 	}
 
-	private fun cropRectFromBitmap(source: Bitmap, rect: Rect ): Bitmap {
-		var width = rect.width()
-		var height = rect.height()
-		if ( (rect.left + width) > source.width ){
-			width = source.width - rect.left
+	private fun cropRectFromBitmap(source: Bitmap, rect: Rect): Bitmap {
+		// Ensure bounds are within the bitmap dimensions
+		val x = rect.left.coerceAtLeast(0)
+		val y = rect.top.coerceAtLeast(0)
+		val width = rect.width().coerceAtMost(source.width - x)
+		val height = rect.height().coerceAtMost(source.height - y)
+
+		return if (width > 0 && height > 0) {
+			Bitmap.createBitmap(source, x, y, width, height)
+		} else {
+			// Return the original if we can't crop
+			source
 		}
-		if ( (rect.top + height ) > source.height ){
-			height = source.height - rect.top
-		}
-		val croppedBitmap = Bitmap.createBitmap( source , rect.left , rect.top , width , height )
-		return croppedBitmap
 	}
 
-	fun rotateBitmap( source: Bitmap , degrees : Float ): Bitmap {
+	private fun rotateBitmap(source: Bitmap, degrees: Float): Bitmap {
+		if (degrees == 0f) return source
+
 		val matrix = Matrix()
-		matrix.postRotate( degrees )
-		return Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix , false )
+		matrix.postRotate(degrees)
+		return Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, false)
 	}
 
-	// Compute the L2 norm of ( x2 - x1 )
-	private fun L2Norm( x1 : FloatArray, x2 : FloatArray ) : Float {
-		return sqrt( x1.mapIndexed{ i , xi -> (xi - x2[ i ]).pow( 2 ) }.sum() )
+	// Compute the L2 norm of (x2 - x1)
+	private fun L2Norm(x1: FloatArray, x2: FloatArray): Float {
+		return sqrt(x1.mapIndexed { i, xi -> (xi - x2[i]).pow(2) }.sum())
 	}
 
-
-	// Compute the cosine of the angle between x1 and x2.
-	private fun cosineSimilarity( x1 : FloatArray , x2 : FloatArray ) : Float {
-		val mag1 = sqrt( x1.map { it * it }.sum() )
-		val mag2 = sqrt( x2.map { it * it }.sum() )
-		val dot = x1.mapIndexed{ i , xi -> xi * x2[ i ] }.sum()
+	// Compute the cosine of the angle between x1 and x2
+	private fun cosineSimilarity(x1: FloatArray, x2: FloatArray): Float {
+		val mag1 = sqrt(x1.map { it * it }.sum())
+		val mag2 = sqrt(x2.map { it * it }.sum())
+		val dot = x1.mapIndexed { i, xi -> xi * x2[i] }.sum()
 		return dot / (mag1 * mag2)
 	}
 
@@ -218,31 +278,9 @@ class FaceAnalyzer(private var model: FaceNetModel,
 
 		val yuvImage = YuvImage(nv21, ImageFormat.NV21, image.width, image.height, null)
 		val out = ByteArrayOutputStream()
-		yuvImage.compressToJpeg(Rect(0, 0, image.width, image.height), 100, out)
+		yuvImage.compressToJpeg(Rect(0, 0, image.width, image.height), 75, out) // Reduced quality for better performance
 		val jpegBytes = out.toByteArray()
 
 		return BitmapFactory.decodeByteArray(jpegBytes, 0, jpegBytes.size)
 	}
-
-//	private fun downsampleMediaImage(mediaImage: Image?, sampleSize: Int): Bitmap? {
-//		mediaImage?.let {
-//			// Extract the image bytes from the ImageProxy
-//			val plane = mediaImage.planes[0]
-//			val buffer: ByteBuffer = plane.buffer
-//			val byteArray = ByteArray(buffer.remaining())
-//			buffer.get(byteArray)
-//
-//			// Use BitmapFactory to decode the byte array and downsample the image
-//			val options = BitmapFactory.Options().apply {
-//				inSampleSize = sampleSize  // Set sample size for downsampling
-//			}
-//
-//			val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size, options)
-//
-//			// Close the ImageProxy to avoid memory leaks
-//			mediaImage.close()
-//			return bitmap
-//		}
-//		return null  // Return null if the image is not available
-//	}
 }

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -38,7 +39,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
@@ -68,8 +68,6 @@ fun MainScreen() {
 	val context = LocalContext.current
 	val lifecycleOwner = LocalLifecycleOwner.current
 	val previewView = remember { PreviewView(context) }
-
-	val imageCapture = remember { ImageCapture.Builder().build() }
 
 	val appBlue = Color.hsl(219f,0.65f,0.36f)
 	// val recognizer // TODO: make this recognize facts

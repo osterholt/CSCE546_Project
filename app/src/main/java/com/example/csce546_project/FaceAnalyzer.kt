@@ -29,9 +29,11 @@ import kotlin.math.pow
 import kotlin.math.sqrt
 
 class FaceAnalyzer(private var model: FaceNetModel,
-				   private var pictures: List<PictureModel>,
+				   private var viewModel: PictureViewModel,
 				   private val onFacesDetected: (List<Face>, Prediction) -> Unit) : ImageAnalysis.Analyzer {
-	private val executor = Executors.newCachedThreadPool()
+
+	private val pictures = viewModel.pictures
+   	private val executor = Executors.newCachedThreadPool()
 	private var isProcessing = false
 
 	private var subject = FloatArray( model.embeddingDim )
@@ -84,66 +86,81 @@ class FaceAnalyzer(private var model: FaceNetModel,
 	}
 
 	private suspend fun runModel(faces: List<Face>, cameraFrameBitmap: Bitmap) {
+		if(pictures.value!!.isEmpty()){
+			Log.d("FaceAnalyzer - Run Model", "No pictures, is processing is now false")
+			isProcessing = false
+			return
+		}
 		withContext(Dispatchers.Default) {
 			val predictions = ArrayList<Prediction>()
 			Log.d("FaceAnalyzer - Run Model", "Number of faces = " + faces.size)
 			for (face in faces) {
 				try {
-					// Some code examples have a detector for if the user is wearing a mask, we are ignoring this for now
 					val croppedBitmap = cropRectFromBitmap(cameraFrameBitmap, face.boundingBox)
 					subject = model.getFaceEmbedding(croppedBitmap)
-					for (i in 0 until pictures.size) {
-						if( nameScoreHashmap[pictures[i]] == null ) {
+					Log.d("FaceAnalyzer - Run Model", "pictures.size = ${pictures.value!!.size}")
+
+					for (i in 0 until pictures.value!!.size) {
+						val picture = pictures.value!![i]
+						if(picture.faceData == null)
+							continue // skip this picture
+						if(picture.mlFace.isEmpty()) {
+							pictures.value!![i].mlFace = model.getFaceEmbedding(picture.faceData!!)
+						}
+						if (nameScoreHashmap[picture] == null) {
 							val p = ArrayList<Float>()
-							if(metricToBeUsed == "cosine")
-								p.add(cosineSimilarity(subject, pictures[i].mlFace))
+							if (metricToBeUsed == "cosine")
+								p.add(cosineSimilarity(subject, picture.mlFace))
 							else
-								p.add(L2Norm(subject, pictures[i].mlFace))
-							nameScoreHashmap[pictures[i]] = p
-						}
-						else {
-							if ( metricToBeUsed == "cosine" ) {
-								nameScoreHashmap[ pictures[i] ]?.add( cosineSimilarity( subject , pictures[ i ].mlFace ) )
-							}
-							else {
-								nameScoreHashmap[ pictures[ i ] ]?.add( L2Norm( subject , pictures[i].mlFace ) )
-							}
-						}
-
-						//Analyze the best scores
-						val avgScores = nameScoreHashmap.values.map { scores -> scores.toFloatArray().average() }
-						val names = nameScoreHashmap.keys.map { picture -> picture.name }
-						nameScoreHashmap.clear() // Any namescore declarations end here
-
-						val bestScoreName: String = if (metricToBeUsed == "cosine") {
-							if (avgScores.maxOrNull()!! > model.model.cosineThreshold) {
-								names[avgScores.indexOf(avgScores.maxOrNull()!!)] ?: "Unknown"
-							} else {
-								"Unknown"
-							}
+								p.add(L2Norm(subject, picture.mlFace))
+							nameScoreHashmap[picture] = p
 						} else {
-							if (avgScores.minOrNull()!! > model.model.l2Threshold) {
-								"Unknown"
-							} else {
-								names[avgScores.indexOf(avgScores.minOrNull()!!)] ?: "Unknown"
-							}
+							if (metricToBeUsed == "cosine")
+								nameScoreHashmap[picture]?.add(cosineSimilarity(subject, picture.mlFace))
+							else
+								nameScoreHashmap[picture]?.add(L2Norm(subject, picture.mlFace))
 						}
-						Log.d("FaceAnalyzer - Run Model", "bestScoreName is \"${bestScoreName}\"")
-						predictions.add(
-							Prediction(
-								face.boundingBox,
-								bestScoreName
-							)
-						)
 					}
+
+					val avgScores = nameScoreHashmap.values.map { scores -> scores.toFloatArray().average() }
+					val names = nameScoreHashmap.keys.map { picture -> picture.name }
+
+					// DEBUG: Log all names and their average scores
+					for ((index, name) in names.withIndex()) {
+						val score = avgScores[index]
+						Log.d("FaceAnalyzer - Run Model", "Name: $name, Score: $score")
+					}
+
+
+					val bestScoreName: String = if (metricToBeUsed == "cosine") {
+						val max = avgScores.maxOrNull()
+						if (max != null && max > model.model.cosineThreshold) {
+							names[avgScores.indexOf(max)] ?: "Unknown"
+						} else {
+							"Unknown"
+						}
+					} else {
+						val min = avgScores.minOrNull()
+						if (min != null && min < model.model.l2Threshold) {
+							"Unknown"
+						} else {
+							names[avgScores.indexOf(min!!)] ?: "Unknown"
+						}
+					}
+
+					Log.d("FaceAnalyzer - Run Model", "bestScoreName is \"$bestScoreName\"")
+					predictions.add(Prediction(face.boundingBox, bestScoreName))
+					nameScoreHashmap.clear()
+
 				} catch (e: Exception) {
-					Log.e("FaceAnalyzer - Run Model", "Error during model execution: ${e.message}") // Added log
+					Log.e("FaceAnalyzer - Run Model", "Error during model execution: ${e.message}")
 					e.printStackTrace()
 				}
 			}
 			withContext(Dispatchers.Main) {
-				if(!predictions.isEmpty()) {
-					onFacesDetected(faces, predictions.first())
+				val firstPrediction = predictions.firstOrNull()
+				if(firstPrediction != null) {
+					onFacesDetected(faces, firstPrediction)
 				}
 				Log.d("FaceAnalyzer - Run Model", "Is Processing: False from Clean Exit")
 				isProcessing = false

@@ -4,17 +4,13 @@ import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageProxy
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,16 +24,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.csce546_project.database.PictureEntry
@@ -66,7 +58,7 @@ fun MainScreen() {
 	)
 
 	// PictureViewModel info -- keeps track of pictures and popup state
-	val viewModel: PictureViewModel = viewModel()
+	val viewModel: PictureViewModel = viewModel() // View model is singleton
 	val pictures by viewModel.pictures.observeAsState(emptyList())
 	val currentPicture by viewModel.currentPicture.collectAsState()  // TODO re-implement
 	val showAdd by viewModel.showAddPopup.collectAsState()
@@ -80,9 +72,6 @@ fun MainScreen() {
 	val modelInfo = Models.FACENET
 	val useGpu = true
 	val faceNetModel = FaceNetModel(context, modelInfo , useGpu )
-//	val faceAnalyzer = remember {
-//		FaceAnalyzer(faceNetModel, pictures) { _, _ -> }
-//	}
 
 
 	val TEST_PICTURE = PictureEntry(0, "Example", "exampleFilePath")  // TODO
@@ -128,89 +117,45 @@ fun MainScreen() {
 					.fillMaxHeight(0.5f)  // TODO figure out how to clip camera preview
 			) {
 				if (cameraPermissionState.status.isGranted) {
-					if(!imageCaptured) {
-						// Box Representing Image Preview
-						Box(modifier = Modifier) {
-							// TODO: Switch to selfie camera or have toggle.
-							CameraPreview(
-								previewView = previewView,
-								imageCapture = imageCapture,
-								lifecycleOwner = lifecycleOwner,
-								model = faceNetModel,
-								pictures = pictures,
-								onFacesDetected = { detectedFaces, prediction ->
-									if (detectedFaces.isNotEmpty() && !imageCaptured) {
-										imageCapture.takePicture(
-											ContextCompat.getMainExecutor(context),
-											object : ImageCapture.OnImageCapturedCallback() {
-												override fun onCaptureSuccess(image: ImageProxy) {
-													val bitmap = image.toBitmap()
-													val rotationDegrees =
-														image.imageInfo.rotationDegrees
-													val rotatedBitmap = rotateBitmap(
-														bitmap,
-														rotationDegrees.toFloat()
-													)
-													detectedBitmap = rotatedBitmap
-													image.close()
-													imageCaptured = true
-												}
-											}
-										)
-										faces = detectedFaces
-										namePrediction = prediction
-									}
+					// Box Representing Image Preview
+					Box(modifier = Modifier) {
+						// TODO: Switch to selfie camera or have toggle.
+						CameraPreview(
+							previewView = previewView,
+							imageCapture = imageCapture,
+							lifecycleOwner = lifecycleOwner,
+							model = faceNetModel,
+							viewModel = viewModel,
+							onFacesDetected = { detectedFaces, prediction ->
+								if (detectedFaces.isNotEmpty() && !imageCaptured) {
+									faces = detectedFaces
+									namePrediction = prediction
 								}
-							)
-						}
-					} else {
-						detectedBitmap?.let { bitmap ->
-							val aspectRatio = bitmap.width.toFloat() / bitmap.height
+							}
+						)
+					}
 
-							Image(
-								bitmap = bitmap.asImageBitmap(),
-								contentDescription = "Detected Face",
-								contentScale = ContentScale.Fit, // maintains aspect ratio
-								modifier = Modifier
-									.fillMaxWidth()
-									.aspectRatio(aspectRatio)
-							)
-						}
-
-						// Display face details and such
+					// Display face details and such
+					if(!faces.isEmpty()) {
 						FaceBoxOverlay(
 							faces = faces.map { face -> face.boundingBox },
 							imageWidth = detectedBitmap?.width ?: 0,
 							imageHeight = detectedBitmap?.height ?: 0,
 							modifier = Modifier.fillMaxSize()
 						)
-
-						// Debug to show faces
-						Text(
-							text = "Number of faces: ${faces.size}",
-							modifier = Modifier
-								.align(Alignment.BottomCenter)
-								.background(Color.Black.copy(alpha = 0.5f)),
-							color = Color.White
-						)
-
-						// Reset detection
-						Button(
-							onClick = {
-								imageCaptured = false
-								detectedBitmap = null
-								faces = emptyList()
-							},
-							modifier = Modifier
-								.align(Alignment.BottomEnd)
-								.padding(16.dp)
-						) {
-							Text("Reset")
-						}
 					}
 
+					// Debug to show faces
+					Text(
+						text = "Number of faces: ${faces.size}",
+						modifier = Modifier
+							.align(Alignment.BottomCenter)
+							.background(Color.Black.copy(alpha = 0.5f)),
+						color = Color.White
+					)
+
 					// This is the name of the face detected
-					Box(modifier = Modifier) {
+					Box(modifier = Modifier.align(Alignment.TopCenter)) {
 						Text(
 							text = namePrediction?.label ?: defaultName,
 							fontSize = 20.sp,

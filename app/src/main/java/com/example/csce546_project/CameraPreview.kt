@@ -14,7 +14,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
-import com.example.csce546_project.database.PictureModel
 import com.example.csce546_project.model.FaceNetModel
 import com.example.csce546_project.model.Prediction
 import com.google.mlkit.vision.face.Face
@@ -51,7 +50,7 @@ fun CameraPreview(
 	imageCapture: ImageCapture,
 	lifecycleOwner: LifecycleOwner,
 	model: FaceNetModel,
-	pictures: List<PictureModel>,
+	viewModel: PictureViewModel,
 	onFacesDetected: (List<Face>, Prediction) -> Unit
 ) {
 	val context = LocalContext.current
@@ -63,7 +62,7 @@ fun CameraPreview(
 			.build().also {
 				it.setAnalyzer(
 					ContextCompat.getMainExecutor(context),
-					FaceAnalyzer(model, pictures) { faces, prediction ->
+					FaceAnalyzer(model, viewModel) { faces, prediction ->
 						onFacesDetected(faces, prediction)
 					}
 				)

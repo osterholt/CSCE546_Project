@@ -38,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
@@ -106,33 +107,6 @@ fun MainScreen() {
 	Box (
 		modifier = Modifier.fillMaxHeight()
 	) {
-		// Popups, shown conditionally
-		if (showAdd) {
-			Popup (
-				onDismissRequest = { viewModel.closePopup() },
-				properties = PopupProperties(
-					focusable = true,
-					dismissOnClickOutside = true
-				),
-				alignment = Alignment.Center
-			) {
-				AddPopup(viewModel, cameraController, lifecycleOwner) { viewModel.closePopup() }
-			}
-		}
-		else if (showEdit) {
-			Popup (
-				onDismissRequest = { viewModel.closePopup() },
-				properties = PopupProperties(
-					focusable = true,
-					dismissOnClickOutside = true
-				),
-				alignment = Alignment.Center
-			) {
-				EditPopup(viewModel) { viewModel.closePopup() }
-			}
-		}
-
-		// The rest of the main screen
 		Column(
 			modifier = Modifier.fillMaxSize()
 		) {
@@ -145,6 +119,7 @@ fun MainScreen() {
 					.clip(RoundedCornerShape(16.dp))
 					.clipToBounds()
 			) {
+				// TODO even having cameraPermissionState uncommented breaks taking picture
 				if (cameraPermissionState.status.isGranted && enableCamera) {
 					// Box Representing Image Preview
 					Box(modifier = Modifier) {
@@ -191,6 +166,11 @@ fun MainScreen() {
 						)
 					}
 				} else { //TODO: Needs testing
+					Box (
+						modifier = Modifier
+							.fillMaxSize()
+							.background(color = Color.Black)
+					)
 					LaunchedEffect(Unit) {
 						cameraPermissionState.launchPermissionRequest()
 					}
@@ -247,6 +227,34 @@ fun MainScreen() {
 					)
 				}
 				Text("Pictures size = ${viewModel.pictures.value?.size}", modifier = Modifier.align(Alignment.BottomCenter))
+			}
+		}
+
+		// Popups, shown conditionally
+		if (showAdd) {
+			Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)))
+			Popup (
+				onDismissRequest = { viewModel.closePopup() },
+				properties = PopupProperties(
+					focusable = true,
+					dismissOnClickOutside = true
+				),
+				alignment = Alignment.Center
+			) {
+				AddPopup(viewModel, cameraController, lifecycleOwner) { viewModel.closePopup() }
+			}
+		}
+		else if (showEdit) {
+			Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)))
+			Popup (
+				onDismissRequest = { viewModel.closePopup() },
+				properties = PopupProperties(
+					focusable = true,
+					dismissOnClickOutside = false
+				),
+				alignment = Alignment.Center
+			) {
+				EditPopup(viewModel) { viewModel.closePopup() }
 			}
 		}
 	}
